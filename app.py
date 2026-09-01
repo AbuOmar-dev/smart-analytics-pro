@@ -10,6 +10,7 @@ import io
 from datetime import datetime
 import json
 import os
+import requests
 
 # استيراد الملفات المحلية
 import config
@@ -17,7 +18,7 @@ import config
 # إعدادات الصفحة
 st.set_page_config(
     page_title=config.APP_CONFIG["app_name"],
-    page_icon="📊",
+    page_icon="",
     layout="wide",
     initial_sidebar_state="expanded"
 )
@@ -113,9 +114,12 @@ st.markdown("""
 </style>
 """, unsafe_allow_html=True)
 
-# ==================== نظام إدارة المستخدمين ====================
+# ==================== نظام إدارة المستخدمين مع Google Sheets ====================
 
-# المستخدمين الافتراضيين
+# رابط Google Sheet
+GOOGLE_SHEET_URL = "https://docs.google.com/spreadsheets/d/e/2PACX-1vTKMo4N-45WIhxyE5GtMzyHJwaERp5Qt6Nng89NS-6WwKF6g1dGbeToeflSpOduoasMcAGA3K5ATcWw/pub?output=csv"
+
+# المستخدمين الافتراضيين (للتأكد لو sheet مش شغال)
 DEFAULT_USERS = {
     'admin': {
         'password': 'Smart@2026',
@@ -133,50 +137,42 @@ DEFAULT_USERS = {
     }
 }
 
-def load_users():
-    """تحميل قائمة المستخدمين من الملف"""
+def load_users_from_sheet():
+    """تحميل المستخدمين من Google Sheet"""
     try:
-        # محاولة تحميل المستخدمين من GitHub
-        import requests
-        url = "https://raw.githubusercontent.com/AbuOmar-dev/smart-analytics-pro/main/users.json"
-        response = requests.get(url)
-        if response.status_code == 200:
-            data = response.json()
-            users = {}
-            for user in data.get('users', []):
-                users[user['username']] = {
-                    'password': user['password'],
-                    'name': user['name'],
-                    'email': user['email'],
-                    'plan': user.get('plan', 'Free'),
-                    'role': user.get('role', 'user')
+        # قراءة البيانات من Google Sheet
+        df = pd.read_csv(GOOGLE_SHEET_URL)
+        users = {}
+        for _, row in df.iterrows():
+            username = str(row['username']).strip()
+            if username and username != 'nan':
+                users[username] = {
+                    'password': str(row['password']),
+                    'name': str(row.get('name', username)),
+                    'email': str(row.get('email', '')),
+                    'plan': str(row.get('plan', 'Free')),
+                    'role': str(row.get('role', 'user'))
                 }
-            # دمج مع المستخدمين الافتراضيين
-            users.update(DEFAULT_USERS)
-            return users
-    except:
-        pass
-    
-    # لو فشل التحميل، استخدم المستخدمين الافتراضيين
-    return DEFAULT_USERS.copy()
+        return users
+    except Exception as e:
+        st.warning(f"⚠️ لا يمكن الاتصال بقاعدة البيانات: {e}")
+        return DEFAULT_USERS.copy()
+
+def load_users():
+    """تحميل قائمة المستخدمين"""
+    return load_users_from_sheet()
 
 def register_user(username, password, name, email, plan='Free'):
-    """تسجيل مستخدم جديد"""
+    """تسجيل مستخدم جديد - ملاحظة: التعديل اليدوي في Google Sheet مطلوب"""
     users = load_users()
     
     if username in users:
         return False, "اسم المستخدم موجود بالفعل"
     
-    # إضافة المستخدم الجديد
-    users[username] = {
-        'password': password,
-        'name': name,
-        'email': email,
-        'plan': plan,
-        'role': 'user'
-    }
-    
-    return True, "تم التسجيل بنجاح!"
+    # ملاحظة: عشان نضيف مستخدم جديد، لازم تعدل Google Sheet يدوياً
+    # أو نستخدم Google Sheets API (ده محتاج setup إضافي)
+    # حالياً هنستخدم حل مؤقت: نعرض رسالة للمستخدم
+    return True, f"تم التسجيل بنجاح! يرجى التواصل مع الإدارة لتفعيل الحساب. اسم المستخدم: {username}"
 
 # تهيئة الحالة
 if "logged_in" not in st.session_state:
@@ -208,13 +204,14 @@ if not st.session_state.logged_in:
     # التبديل بين تسجيل الدخول والتسجيل
     if st.session_state.show_register:
         st.markdown("### 📝 إنشاء حساب جديد")
+        st.info("💡 بعد التسجيل، يرجى التواصل مع الإدارة لتفعيل الحساب")
         
         col1, col2, col3 = st.columns([1, 2, 1])
         with col2:
             new_username = st.text_input("👤 اسم المستخدم", key="reg_username")
             new_name = st.text_input("👤 الاسم الكامل", key="reg_name")
             new_email = st.text_input("📧 البريد الإلكتروني", key="reg_email")
-            new_password = st.text_input("🔑 كلمة المرور", type="password", key="reg_password")
+            new_password = st.text_input(" كلمة المرور", type="password", key="reg_password")
             confirm_password = st.text_input("🔑 تأكيد كلمة المرور", type="password", key="reg_confirm")
             
             col_btn1, col_btn2 = st.columns(2)
@@ -246,7 +243,7 @@ if not st.session_state.logged_in:
         col1, col2, col3 = st.columns([1, 2, 1])
         with col2:
             username = st.text_input("👤 اسم المستخدم", placeholder="أدخل اسم المستخدم", key="login_username")
-            password = st.text_input("🔑 كلمة المرور", type="password", placeholder="أدخل كلمة المرور", key="login_password")
+            password = st.text_input(" كلمة المرور", type="password", placeholder="أدخل كلمة المرور", key="login_password")
             
             col_btn1, col_btn2 = st.columns(2)
             with col_btn1:
@@ -270,7 +267,7 @@ if not st.session_state.logged_in:
                 st.markdown("")
             
             st.markdown("---")
-            if st.button("📝 ليس لديك حساب؟ سجل الآن", use_container_width=True, type="secondary", key="btn_go_register"):
+            if st.button(" ليس لديك حساب؟ سجل الآن", use_container_width=True, type="secondary", key="btn_go_register"):
                 st.session_state.show_register = True
                 st.rerun()
         
@@ -318,7 +315,7 @@ def generate_local_ai_insights(df, lang):
         if count > 0:
             pct = round((count / len(df)) * 100, 1)
             if pct > 5:
-                insights.append(f"⚠️ العمود {col} يحتوي على {count} قيمة مفقودة ({pct}%)")
+                insights.append(f"️ العمود {col} يحتوي على {count} قيمة مفقودة ({pct}%)")
 
     if len(numeric_cols) >= 2:
         corr_matrix = df[numeric_cols].corr().abs()
@@ -367,7 +364,7 @@ with st.sidebar:
     st.markdown("---")
     
     # اختيار اللغة
-    st.markdown("###  اللغة / Language")
+    st.markdown("### 🌐 اللغة / Language")
     lang_col1, lang_col2 = st.columns(2)
     with lang_col1:
         if st.button("🇪🇬 عربي", use_container_width=True, type="primary" if st.session_state.lang == "ar" else "secondary", key="btn_ar"):
@@ -383,10 +380,10 @@ with st.sidebar:
     # قائمة التنقل
     st.markdown("### 📍 التنقل السريع")
     menu = {
-        "home": " الرئيسية",
+        "home": "🏠 الرئيسية",
         "pricing": "💰 الأسعار",
-        "data_import": "📥 استيراد البيانات",
-        "eda": " التحليل الاستكشافي",
+        "data_import": " استيراد البيانات",
+        "eda": "📊 التحليل الاستكشافي",
         "diagnostic": "🔍 التحليل التشخيصي",
         "predictive": "🔮 التحليل التنبؤي",
         "prescriptive": "💡 التحليل الإرشادي",
@@ -479,7 +476,7 @@ if st.session_state.page == "home":
         **ابدأ الآن في 3 خطوات بسيطة:**
         1. 📥 اضغط على "استيراد البيانات" من القائمة الجانبية
         2. 📊 ارفع ملف CSV أو Excel
-        3. 🎯 استكشف التحليلات والرؤى الذكية
+        3.  استكشف التحليلات والرؤى الذكية
         
         *💡 المنصة تعمل محلياً 100% بدون الحاجة لأي API Keys*
         """)
@@ -492,7 +489,7 @@ elif st.session_state.page == "pricing":
     
     plans = [
         {
-            "name": " Free",
+            "name": "🆓 Free",
             "price": "$0",
             "period": "/شهر",
             "features": ["3 مشاريع نشطة", "تخزين 100MB", "تحليل استكشافي فقط", "تصدير PDF بعلامة مائية"],
@@ -509,7 +506,7 @@ elif st.session_state.page == "pricing":
             "popular": True
         },
         {
-            "name": " Enterprise",
+            "name": "🏢 Enterprise",
             "price": "$99",
             "period": "/شهر",
             "features": ["كل مميزات Pro", "تخزين غير محدود", "White-Label كامل", "API Access", "مدير حساب مخصص", "SLA مضمون 99.9%"],
@@ -575,7 +572,7 @@ elif st.session_state.page == "data_import":
             st.markdown("### معاينة البيانات")
             st.dataframe(df.head(10), use_container_width=True)
             
-            with st.expander(" معلومات عن الأعمدة"):
+            with st.expander("📊 معلومات عن الأعمدة"):
                 col_info = pd.DataFrame({
                     'العمود': df.columns.tolist(),
                     'النوع': [str(dtype) for dtype in df.dtypes],
@@ -588,7 +585,7 @@ elif st.session_state.page == "eda":
     st.markdown("## 📊 التحليل الاستكشافي (EDA)")
     
     if st.session_state.df is None:
-        st.warning("️ يرجى رفع البيانات أولاً من صفحة استيراد البيانات")
+        st.warning("⚠️ يرجى رفع البيانات أولاً من صفحة استيراد البيانات")
     else:
         df = st.session_state.df
         
@@ -638,7 +635,7 @@ elif st.session_state.page == "diagnostic":
     if st.session_state.df is None:
         st.warning("⚠️ يرجى رفع البيانات أولاً")
     else:
-        st.markdown("### 🔍 كشف الشذوذ (Anomaly Detection)")
+        st.markdown("###  كشف الشذوذ (Anomaly Detection)")
         numeric_cols = st.session_state.df.select_dtypes(include=[np.number]).columns.tolist()
         
         if numeric_cols:
@@ -647,7 +644,7 @@ elif st.session_state.page == "diagnostic":
                                  help="القيم الأقل من -threshold أو الأكبر من +threshold تعتبر شاذة",
                                  key="diag_threshold")
             
-            if st.button("🔍 تشخيص البيانات", type="primary", key="btn_diagnose"):
+            if st.button(" تشخيص البيانات", type="primary", key="btn_diagnose"):
                 mean = np.mean(st.session_state.df[target_col])
                 std = np.std(st.session_state.df[target_col])
                 z_scores = np.abs((st.session_state.df[target_col] - mean) / std)
@@ -684,7 +681,7 @@ elif st.session_state.page == "predictive":
     if st.session_state.df is None:
         st.warning("⚠️ يرجى رفع البيانات أولاً")
     else:
-        st.info(" يتم استخدام نموذج Linear Regression للتنبؤ")
+        st.info("🤖 يتم استخدام نموذج Linear Regression للتنبؤ")
         
         numeric_cols = st.session_state.df.select_dtypes(include=[np.number]).columns.tolist()
         
@@ -751,7 +748,7 @@ elif st.session_state.page == "prescriptive":
                     """, unsafe_allow_html=True)
         
         st.markdown("---")
-        st.markdown("### 📋 خطة العمل المقترحة")
+        st.markdown("###  خطة العمل المقترحة")
         
         st.markdown("""
         <div class="success-box">
@@ -789,7 +786,7 @@ elif st.session_state.page == "ai_chat":
                 prompt_lower = prompt.lower()
                 
                 if "عدد" in prompt_lower or "rows" in prompt_lower or "shape" in prompt_lower:
-                    response = f" يحتوي جدول البيانات على **{len(st.session_state.df)} صف** و **{len(st.session_state.df.columns)} عمود**."
+                    response = f"📊 يحتوي جدول البيانات على **{len(st.session_state.df)} صف** و **{len(st.session_state.df.columns)} عمود**."
                 
                 elif "أعمدة" in prompt_lower or "columns" in prompt_lower:
                     cols_list = ", ".join(st.session_state.df.columns.tolist())
