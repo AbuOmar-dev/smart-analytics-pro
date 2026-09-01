@@ -8,10 +8,20 @@ from sklearn.model_selection import train_test_split
 from sklearn.metrics import mean_squared_error, r2_score
 import io
 from datetime import datetime
+import yaml
+from yaml.loader import SafeLoader
+import streamlit_authenticator as stauth
 
 # استيراد الملفات المحلية
 import config
 from translations import get_text
+from auth_utils import (
+    initialize_authenticator, 
+    check_authentication, 
+    get_current_user,
+    get_user_subscription_plan,
+    display_user_info
+)
 
 # إعدادات الصفحة
 st.set_page_config(
@@ -24,32 +34,20 @@ st.set_page_config(
 # CSS Styling احترافي
 st.markdown("""
 <style>
-    /* الخلفية والألوان العامة */
     .main {
         background-color: #f5f7fa;
     }
     
-    /* الشريط الجانبي */
     .css-1d391kg {
         background-color: #ffffff;
         border-right: 1px solid #e1e8ed;
     }
     
-    /* العناوين */
     h1, h2, h3 {
         color: #1a202c;
         font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
     }
     
-    /* البطاقات */
-    .css-1r6slb0 {
-        background-color: white;
-        border-radius: 10px;
-        padding: 20px;
-        box-shadow: 0 2px 8px rgba(0,0,0,0.1);
-    }
-    
-    /* الأزرار */
     .stButton>button {
         background-color: #3182ce;
         color: white;
@@ -66,7 +64,6 @@ st.markdown("""
         box-shadow: 0 4px 12px rgba(49, 130, 206, 0.4);
     }
     
-    /* الصناديق الملونة */
     .info-box {
         background-color: #ebf8ff;
         border-left: 4px solid #3182ce;
@@ -91,7 +88,6 @@ st.markdown("""
         margin: 10px 0;
     }
     
-    /* المترية */
     .metric-card {
         background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
         color: white;
@@ -101,19 +97,37 @@ st.markdown("""
         box-shadow: 0 4px 6px rgba(0,0,0,0.1);
     }
     
-    /* Hide Streamlit branding */
     #MainMenu {visibility: hidden;}
     footer {visibility: hidden;}
     
-    /* RTL Support للعربية */
-    [dir="rtl"] .css-1d391kg {
-        border-right: none;
-        border-left: 1px solid #e1e8ed;
+    .login-container {
+        max-width: 500px;
+        margin: 100px auto;
+        padding: 40px;
+        background: white;
+        border-radius: 20px;
+        box-shadow: 0 10px 40px rgba(0,0,0,0.1);
+    }
+    
+    .login-header {
+        text-align: center;
+        margin-bottom: 30px;
+    }
+    
+    .login-header h1 {
+        color: #2d3748;
+        font-size: 32px;
+        margin-bottom: 10px;
+    }
+    
+    .login-header p {
+        color: #718096;
+        font-size: 16px;
     }
 </style>
 """, unsafe_allow_html=True)
 
-# تهيئة الحالة (Session State)
+# تهيئة الحالة
 if "lang" not in st.session_state:
     st.session_state.lang = "ar"
 if "page" not in st.session_state:
@@ -121,7 +135,28 @@ if "page" not in st.session_state:
 if "df" not in st.session_state:
     st.session_state.df = None
 
-# دوال مساعدة
+# تهيئة المصادقة
+authenticator = initialize_authenticator()
+
+# ==================== صفحة تسجيل الدخول ====================
+if authenticator is None:
+    st.error("خطأ في تحميل نظام المصادقة. يرجى التحقق من ملف config.yaml")
+    st.stop()
+
+name, authentication_status, username = authenticator.login('Login', 'main')
+
+if authentication_status == False:
+    st.error('Username/password is incorrect')
+elif authentication_status == None:
+    st.warning('Please enter your username and password')
+    st.stop()
+
+# ==================== المنصة الرئيسية (بعد تسجيل الدخول) ====================
+
+# الحصول على معلومات المستخدم
+current_user = get_current_user()
+user_plan = get_user_subscription_plan(username) if current_user else 'Free'
+
 def set_language(lang):
     st.session_state.lang = lang
 
@@ -143,12 +178,10 @@ def load_data(file):
         return None
 
 def generate_local_ai_insights(df, lang):
-    """محرك رؤى ذكي محلي"""
     insights = []
     numeric_cols = df.select_dtypes(include=[np.number]).columns.tolist()
     categorical_cols = df.select_dtypes(include=['object', 'category']).columns.tolist()
     
-    # 1. تحليل القيم المفقودة
     missing = df.isnull().sum()
     for col, count in missing.items():
         if count > 0:
@@ -156,7 +189,6 @@ def generate_local_ai_insights(df, lang):
             if pct > 5:
                 insights.append(get_text("ai_insights.missing_values", lang, col, count, pct))
 
-    # 2. تحليل الارتباط
     if len(numeric_cols) >= 2:
         corr_matrix = df[numeric_cols].corr().abs()
         np.fill_diagonal(corr_matrix.values, 0)
@@ -167,7 +199,6 @@ def generate_local_ai_insights(df, lang):
             if val > config.AI_LOCAL_CONFIG["correlation_threshold"]:
                 insights.append(get_text("ai_insights.high_correlation", lang, top_corr[0], top_corr[1], val))
 
-    # 3. تحليل الفئات الأعلى أداءً
     if len(categorical_cols) >= 1 and len(numeric_cols) >= 1:
         cat_col = categorical_cols[0]
         num_col = numeric_cols[0]
@@ -179,33 +210,18 @@ def generate_local_ai_insights(df, lang):
         return ["✅ البيانات تبدو نظيفة وجيدة للتحليل المتقدم."]
     return insights
 
-def display_metric_card(title, value, delta=None):
-    """عرض بطاقة مترية احترافية"""
-    card_html = f"""
-    <div class="metric-card">
-        <div style="font-size: 14px; opacity: 0.9;">{title}</div>
-        <div style="font-size: 32px; font-weight: bold; margin: 10px 0;">{value}</div>
-        {f'<div style="font-size: 14px;">{delta}</div>' if delta else ''}
-    </div>
-    """
-    st.markdown(card_html, unsafe_allow_html=True)
-
-# --- الشريط الجانبي المحسن ---
+# --- الشريط الجانبي ---
 with st.sidebar:
-    # الشعار والعنوان
-    st.markdown("""
-    <div style="text-align: center; padding: 20px 0; border-bottom: 2px solid #e1e8ed; margin-bottom: 20px;">
-        <div style="font-size: 48px; margin-bottom: 10px;">📊</div>
-        <h2 style="color: #2d3748; margin: 0;">Smart Analytics Pro</h2>
-        <div style="color: #718096; font-size: 12px; margin-top: 5px;">منصة تحليل البيانات الاحترافية</div>
-    </div>
-    """, unsafe_allow_html=True)
+    # معلومات المستخدم
+    display_user_info()
+    
+    st.markdown("---")
     
     # اختيار اللغة
     st.markdown("### 🌐 اللغة / Language")
     lang_col1, lang_col2 = st.columns(2)
     with lang_col1:
-        if st.button("🇪🇬 عربي", use_container_width=True, type="primary" if st.session_state.lang == "ar" else "secondary"):
+        if st.button("🇪 عربي", use_container_width=True, type="primary" if st.session_state.lang == "ar" else "secondary"):
             set_language("ar")
             st.rerun()
     with lang_col2:
@@ -215,8 +231,8 @@ with st.sidebar:
 
     st.markdown("---")
     
-    # قائمة التنقل المحسنة
-    st.markdown("### 📍 التنقل السريع")
+    # قائمة التنقل
+    st.markdown("###  التنقل السريع")
     menu = {
         "home": "🏠 " + get_text("sidebar.home", st.session_state.lang),
         "pricing": "💰 " + get_text("sidebar.pricing", st.session_state.lang),
@@ -225,7 +241,7 @@ with st.sidebar:
         "diagnostic": "🔍 " + get_text("sidebar.diagnostic", st.session_state.lang),
         "predictive": "🔮 " + get_text("sidebar.predictive", st.session_state.lang),
         "prescriptive": "💡 " + get_text("sidebar.prescriptive", st.session_state.lang),
-        "ai_chat": "🤖 " + get_text("sidebar.ai_chat", st.session_state.lang),
+        "ai_chat": " " + get_text("sidebar.ai_chat", st.session_state.lang),
         "export": "💾 " + get_text("sidebar.export", st.session_state.lang)
     }
     
@@ -236,7 +252,11 @@ with st.sidebar:
     
     st.markdown("---")
     
-    # معلومات إضافية
+    # زر تسجيل الخروج
+    if st.button("🚪 تسجيل الخروج", use_container_width=True, type="secondary"):
+        authenticator.logout('Logout', 'main')
+        st.rerun()
+    
     if st.session_state.df is not None:
         st.markdown(f"""
         <div class="success-box">
@@ -260,7 +280,6 @@ if st.session_state.page == "home":
     </div>
     """, unsafe_allow_html=True)
     
-    # الميزات الرئيسية
     col1, col2, col3, col4 = st.columns(4)
     
     with col1:
@@ -293,7 +312,7 @@ if st.session_state.page == "home":
     with col4:
         st.markdown("""
         <div class="info-box" style="text-align: center;">
-            <div style="font-size: 40px; margin-bottom: 10px;"></div>
+            <div style="font-size: 40px; margin-bottom: 10px;">💡</div>
             <h3>التحليل الإرشادي</h3>
             <p>توصيات عملية لزيادة العائد على الاستثمار</p>
         </div>
@@ -301,9 +320,10 @@ if st.session_state.page == "home":
     
     st.markdown("---")
     
-    # رسالة ترحيبية
     st.info(f"""
     ### {get_text('messages.welcome', st.session_state.lang)}
+    
+    **مرحباً {current_user['name']}! 👋**
     
     **ابدأ الآن في 3 خطوات بسيطة:**
     1. 📥 اضغط على "استيراد البيانات" من القائمة الجانبية
@@ -389,7 +409,6 @@ elif st.session_state.page == "data_import":
             st.session_state.df = df
             st.success(get_text("messages.success_upload", st.session_state.lang, len(df)))
             
-            # معلومات الملف
             col1, col2, col3, col4 = st.columns(4)
             with col1:
                 st.metric("عدد الصفوف", f"{len(df):,}")
@@ -404,7 +423,6 @@ elif st.session_state.page == "data_import":
             st.markdown("### معاينة البيانات")
             st.dataframe(df.head(10), use_container_width=True)
             
-            # معلومات عن الأعمدة
             with st.expander("📊 معلومات عن الأعمدة"):
                 col_info = pd.DataFrame({
                     'العمود': df.columns.tolist(),
@@ -422,7 +440,6 @@ elif st.session_state.page == "eda":
     else:
         df = st.session_state.df
         
-        # ملخص سريع
         col1, col2, col3 = st.columns(3)
         with col1:
             st.info(f"**إجمالي الصفوف:** {len(df):,}")
@@ -434,12 +451,10 @@ elif st.session_state.page == "eda":
         
         st.markdown("---")
         
-        # 1. الملخص الإحصائي
         st.markdown("### 📈 الملخص الإحصائي الشامل")
         with st.expander("عرض الملخص الإحصائي", expanded=True):
             st.dataframe(df.describe(), use_container_width=True)
         
-        # 2. تحليل القيم المفقودة
         st.markdown("### 🔍 تحليل القيم المفقودة")
         missing_data = df.isnull().sum().reset_index()
         missing_data.columns = ['Column', 'Missing Count']
@@ -454,7 +469,6 @@ elif st.session_state.page == "eda":
         else:
             st.success("✅ ممتاز! لا توجد قيم مفقودة في البيانات.")
         
-        # 3. مصفوفة الارتباط
         st.markdown("### 🔗 مصفوفة الارتباط")
         numeric_df = df.select_dtypes(include=[np.number])
         if len(numeric_df.columns) > 1:
@@ -498,10 +512,9 @@ elif st.session_state.page == "diagnostic":
                     st.metric("نسبة الشذوذ", f"{pct:.2f}%")
                 
                 if len(anomalies) > 0:
-                    st.markdown("### 📋 عينة من حالات الشذوذ:")
+                    st.markdown("###  عينة من حالات الشذوذ:")
                     st.dataframe(anomalies.head(10), use_container_width=True)
                     
-                    # رسم بياني للشذوذ
                     fig = px.scatter(st.session_state.df, 
                                     x=range(len(st.session_state.df)), 
                                     y=target_col,
@@ -547,10 +560,8 @@ elif st.session_state.page == "predictive":
                 with col2:
                     st.metric("خطأ التربيعي (MSE)", f"{mse:.3f}")
                 
-                # معادلة الانحدار
                 st.success(f"**معادلة الانحدار:** {target} = {model.coef_[0]:.3f} × {feature} + {model.intercept_:.3f}")
                 
-                # رسم النتائج
                 fig = px.scatter(x=y_test, y=predictions, 
                                 labels={'x': 'القيم الفعلية', 'y': 'القيم المتوقعة'}, 
                                 title="القيم الفعلية مقابل المتوقعة",
@@ -569,7 +580,7 @@ elif st.session_state.page == "prescriptive":
     else:
         st.markdown("### التوصيات المبنية على البيانات")
         
-        with st.spinner("🤖 جاري تحليل البيانات واستخراج الرؤى..."):
+        with st.spinner(" جاري تحليل البيانات واستخراج الرؤى..."):
             insights = generate_local_ai_insights(st.session_state.df, st.session_state.lang)
             
             for i, insight in enumerate(insights, 1):
@@ -577,7 +588,7 @@ elif st.session_state.page == "prescriptive":
                     st.warning(insight)
                 elif "" in insight:
                     st.info(insight)
-                elif "🏆" in insight:
+                elif "" in insight:
                     st.success(insight)
                 else:
                     st.markdown(f"""
