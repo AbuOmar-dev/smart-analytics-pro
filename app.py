@@ -167,8 +167,8 @@ if not st.session_state.logged_in:
     
     col1, col2, col3 = st.columns([1, 2, 1])
     with col2:
-        username = st.text_input("👤 اسم المستخدم", placeholder="admin")
-        password = st.text_input("🔑 كلمة المرور", type="password", placeholder="Smart@2026")
+        username = st.text_input("👤 اسم المستخدم", placeholder="أدخل اسم المستخدم")
+        password = st.text_input("🔑 كلمة المرور", type="password", placeholder="أدخل كلمة المرور")
         
         col_btn1, col_btn2 = st.columns(2)
         with col_btn1:
