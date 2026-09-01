@@ -8,6 +8,8 @@ from sklearn.model_selection import train_test_split
 from sklearn.metrics import mean_squared_error, r2_score
 import io
 from datetime import datetime
+import json
+import os
 
 # استيراد الملفات المحلية
 import config
@@ -15,7 +17,7 @@ import config
 # إعدادات الصفحة
 st.set_page_config(
     page_title=config.APP_CONFIG["app_name"],
-    page_icon="📊",
+    page_icon="",
     layout="wide",
     initial_sidebar_state="expanded"
 )
@@ -111,10 +113,10 @@ st.markdown("""
 </style>
 """, unsafe_allow_html=True)
 
-# ==================== نظام تسجيل الدخول البسيط ====================
+# ==================== نظام إدارة المستخدمين ====================
 
-# بيانات المستخدمين (مخزنة في الكود مباشرة)
-USERS = {
+# المستخدمين الافتراضيين
+DEFAULT_USERS = {
     'admin': {
         'password': 'Smart@2026',
         'name': 'مدير النظام',
@@ -128,21 +130,61 @@ USERS = {
         'email': 'demo@smartanalytics.com',
         'role': 'user',
         'plan': 'Pro'
-    },
-    'user1': {
-        'password': 'User@2026',
-        'name': 'مستخدم عادي',
-        'email': 'user1@smartanalytics.com',
-        'role': 'user',
-        'plan': 'Free'
     }
 }
+
+def load_users():
+    """تحميل قائمة المستخدمين من الملف"""
+    try:
+        # محاولة تحميل المستخدمين من GitHub
+        import requests
+        url = "https://raw.githubusercontent.com/AbuOmar-dev/smart-analytics-pro/main/users.json"
+        response = requests.get(url)
+        if response.status_code == 200:
+            data = response.json()
+            users = {}
+            for user in data.get('users', []):
+                users[user['username']] = {
+                    'password': user['password'],
+                    'name': user['name'],
+                    'email': user['email'],
+                    'plan': user.get('plan', 'Free'),
+                    'role': user.get('role', 'user')
+                }
+            # دمج مع المستخدمين الافتراضيين
+            users.update(DEFAULT_USERS)
+            return users
+    except:
+        pass
+    
+    # لو فشل التحميل، استخدم المستخدمين الافتراضيين
+    return DEFAULT_USERS.copy()
+
+def register_user(username, password, name, email, plan='Free'):
+    """تسجيل مستخدم جديد"""
+    users = load_users()
+    
+    if username in users:
+        return False, "اسم المستخدم موجود بالفعل"
+    
+    # إضافة المستخدم الجديد
+    users[username] = {
+        'password': password,
+        'name': name,
+        'email': email,
+        'plan': plan,
+        'role': 'user'
+    }
+    
+    return True, "تم التسجيل بنجاح!"
 
 # تهيئة الحالة
 if "logged_in" not in st.session_state:
     st.session_state.logged_in = False
 if "current_user" not in st.session_state:
     st.session_state.current_user = None
+if "show_register" not in st.session_state:
+    st.session_state.show_register = False
 if "lang" not in st.session_state:
     st.session_state.lang = "ar"
 if "page" not in st.session_state:
@@ -150,57 +192,97 @@ if "page" not in st.session_state:
 if "df" not in st.session_state:
     st.session_state.df = None
 
-# ==================== صفحة تسجيل الدخول ====================
+# ==================== صفحة تسجيل الدخول والتسجيل ====================
 
 if not st.session_state.logged_in:
     st.markdown("""
     <div class="login-container">
         <div class="login-header">
-            <div style="font-size: 64px; margin-bottom: 20px;"></div>
+            <div style="font-size: 64px; margin-bottom: 20px;">📊</div>
             <h1>Smart Analytics Pro</h1>
             <p>منصة احترافية لتحليل البيانات والذكاء الاصطناعي</p>
         </div>
     </div>
     """, unsafe_allow_html=True)
     
-    st.markdown("### 🔐 تسجيل الدخول")
-    
-    col1, col2, col3 = st.columns([1, 2, 1])
-    with col2:
-        username = st.text_input("👤 اسم المستخدم", placeholder="أدخل اسم المستخدم")
-        password = st.text_input("🔑 كلمة المرور", type="password", placeholder="أدخل كلمة المرور")
+    # التبديل بين تسجيل الدخول والتسجيل
+    if st.session_state.show_register:
+        st.markdown("### 📝 إنشاء حساب جديد")
         
-        col_btn1, col_btn2 = st.columns(2)
-        with col_btn1:
-            login_clicked = st.button("🚪 دخول", use_container_width=True, type="primary")
-        with col_btn2:
-            st.markdown("")
-    
-    if login_clicked:
-        if username in USERS and USERS[username]['password'] == password:
-            st.session_state.logged_in = True
-            st.session_state.current_user = {
-                'username': username,
-                'name': USERS[username]['name'],
-                'email': USERS[username]['email'],
-                'role': USERS[username]['role'],
-                'plan': USERS[username]['plan']
-            }
-            st.success(f"✅ مرحباً {USERS[username]['name']}!")
-            st.rerun()
-        else:
-            st.error("❌ اسم المستخدم أو كلمة المرور غير صحيحة")
-    
-    st.markdown("---")
-    st.markdown("""
-    <div style="text-align: center; color: #718096; font-size: 12px;">
-        <p><strong>بيانات تجريبية:</strong></p>
-        <p>المستخدم: <code>admin</code> | كلمة المرور: <code>Smart@2026</code></p>
-        <p>المستخدم: <code>demo_user</code> | كلمة المرور: <code>Demo@2026</code></p>
-    </div>
-    """, unsafe_allow_html=True)
-    
-    st.stop()
+        col1, col2, col3 = st.columns([1, 2, 1])
+        with col2:
+            new_username = st.text_input("👤 اسم المستخدم", key="reg_username")
+            new_name = st.text_input("👤 الاسم الكامل", key="reg_name")
+            new_email = st.text_input("📧 البريد الإلكتروني", key="reg_email")
+            new_password = st.text_input("🔑 كلمة المرور", type="password", key="reg_password")
+            confirm_password = st.text_input("🔑 تأكيد كلمة المرور", type="password", key="reg_confirm")
+            
+            col_btn1, col_btn2 = st.columns(2)
+            with col_btn1:
+                if st.button("✅ تسجيل الحساب", use_container_width=True, type="primary"):
+                    if not new_username or not new_password or not new_name or not new_email:
+                        st.error("❌ يرجى ملء جميع الحقول")
+                    elif new_password != confirm_password:
+                        st.error("❌ كلمات المرور غير متطابقة")
+                    elif len(new_password) < 6:
+                        st.error("❌ كلمة المرور يجب أن تكون 6 أحرف على الأقل")
+                    else:
+                        success, message = register_user(new_username, new_password, new_name, new_email)
+                        if success:
+                            st.success(f"✅ {message}")
+                            st.balloons()
+                            st.session_state.show_register = False
+                            st.rerun()
+                        else:
+                            st.error(f"❌ {message}")
+            
+            with col_btn2:
+                if st.button("🔐 لديك حساب؟ دخول", use_container_width=True, type="secondary"):
+                    st.session_state.show_register = False
+                    st.rerun()
+    else:
+        st.markdown("### 🔐 تسجيل الدخول")
+        
+        col1, col2, col3 = st.columns([1, 2, 1])
+        with col2:
+            username = st.text_input("👤 اسم المستخدم", placeholder="أدخل اسم المستخدم")
+            password = st.text_input("🔑 كلمة المرور", type="password", placeholder="أدخل كلمة المرور")
+            
+            col_btn1, col_btn2 = st.columns(2)
+            with col_btn1:
+                if st.button("🚪 دخول", use_container_width=True, type="primary"):
+                    users = load_users()
+                    if username in users and users[username]['password'] == password:
+                        st.session_state.logged_in = True
+                        st.session_state.current_user = {
+                            'username': username,
+                            'name': users[username]['name'],
+                            'email': users[username]['email'],
+                            'role': users[username]['role'],
+                            'plan': users[username]['plan']
+                        }
+                        st.success(f"✅ مرحباً {users[username]['name']}!")
+                        st.rerun()
+                    else:
+                        st.error("❌ اسم المستخدم أو كلمة المرور غير صحيحة")
+            
+            with col_btn2:
+                st.markdown("")
+            
+            st.markdown("---")
+            if st.button("📝 ليس لديك حساب؟ سجل الآن", use_container_width=True, type="secondary"):
+                st.session_state.show_register = True
+                st.rerun()
+        
+        st.markdown("---")
+        st.markdown("""
+        <div style="text-align: center; color: #718096; font-size: 12px;">
+            <p><strong>بيانات تجريبية:</strong></p>
+            <p>المستخدم: <code>admin</code> | كلمة المرور: <code>Smart@2026</code></p>
+        </div>
+        """, unsafe_allow_html=True)
+        
+        st.stop()
 
 # ==================== المنصة الرئيسية (بعد تسجيل الدخول) ====================
 
@@ -236,7 +318,7 @@ def generate_local_ai_insights(df, lang):
         if count > 0:
             pct = round((count / len(df)) * 100, 1)
             if pct > 5:
-                insights.append(f"⚠️ العمود {col} يحتوي على {count} قيمة مفقودة ({pct}%)")
+                insights.append(f"️ العمود {col} يحتوي على {count} قيمة مفقودة ({pct}%)")
 
     if len(numeric_cols) >= 2:
         corr_matrix = df[numeric_cols].corr().abs()
@@ -279,11 +361,11 @@ with st.sidebar:
     st.markdown("### 🌐 اللغة / Language")
     lang_col1, lang_col2 = st.columns(2)
     with lang_col1:
-        if st.button("🇬 عربي", use_container_width=True, type="primary" if st.session_state.lang == "ar" else "secondary"):
+        if st.button("🇪 عربي", use_container_width=True, type="primary" if st.session_state.lang == "ar" else "secondary"):
             set_language("ar")
             st.rerun()
     with lang_col2:
-        if st.button("🇬 English", use_container_width=True, type="primary" if st.session_state.lang == "en" else "secondary"):
+        if st.button("🇬🇧 English", use_container_width=True, type="primary" if st.session_state.lang == "en" else "secondary"):
             set_language("en")
             st.rerun()
 
@@ -296,9 +378,9 @@ with st.sidebar:
         "pricing": "💰 الأسعار",
         "data_import": "📥 استيراد البيانات",
         "eda": "📊 التحليل الاستكشافي",
-        "diagnostic": "🔍 التحليل التشخيصي",
+        "diagnostic": " التحليل التشخيصي",
         "predictive": "🔮 التحليل التنبؤي",
-        "prescriptive": " التحليل الإرشادي",
+        "prescriptive": "💡 التحليل الإرشادي",
         "ai_chat": "🤖 المساعد الذكي",
         "export": "💾 التصدير"
     }
@@ -311,10 +393,11 @@ with st.sidebar:
     st.markdown("---")
     
     # زر تسجيل الخروج
-    if st.button(" تسجيل الخروج", use_container_width=True, type="secondary"):
+    if st.button("🚪 تسجيل الخروج", use_container_width=True, type="secondary"):
         st.session_state.logged_in = False
         st.session_state.current_user = None
         st.session_state.page = "home"
+        st.session_state.show_register = False
         st.rerun()
     
     if st.session_state.df is not None:
@@ -363,7 +446,7 @@ if st.session_state.page == "home":
     with col3:
         st.markdown("""
         <div class="warning-box" style="text-align: center;">
-            <div style="font-size: 40px; margin-bottom: 10px;">🔮</div>
+            <div style="font-size: 40px; margin-bottom: 10px;"></div>
             <h3>التحليل التنبؤي</h3>
             <p>تنبؤات دقيقة باستخدام الذكاء الاصطناعي</p>
         </div>
@@ -372,7 +455,7 @@ if st.session_state.page == "home":
     with col4:
         st.markdown("""
         <div class="info-box" style="text-align: center;">
-            <div style="font-size: 40px; margin-bottom: 10px;">💡</div>
+            <div style="font-size: 40px; margin-bottom: 10px;"></div>
             <h3>التحليل الإرشادي</h3>
             <p>توصيات عملية لزيادة العائد على الاستثمار</p>
         </div>
@@ -386,9 +469,9 @@ if st.session_state.page == "home":
     **ابدأ الآن في 3 خطوات بسيطة:**
     1.  اضغط على "استيراد البيانات" من القائمة الجانبية
     2. 📊 ارفع ملف CSV أو Excel
-    3. 🎯 استكشف التحليلات والرؤى الذكية
+    3.  استكشف التحليلات والرؤى الذكية
     
-    * المنصة تعمل محلياً 100% بدون الحاجة لأي API Keys*
+    *💡 المنصة تعمل محلياً 100% بدون الحاجة لأي API Keys*
     """)
 
 elif st.session_state.page == "pricing":
@@ -399,7 +482,7 @@ elif st.session_state.page == "pricing":
     
     plans = [
         {
-            "name": " Free",
+            "name": "🆓 Free",
             "price": "$0",
             "period": "/شهر",
             "features": ["3 مشاريع نشطة", "تخزين 100MB", "تحليل استكشافي فقط", "تصدير PDF بعلامة مائية"],
@@ -444,7 +527,7 @@ elif st.session_state.page == "pricing":
                 <div style="background: white; padding: 20px; border-radius: 12px; margin-bottom: 20px;
                             box-shadow: 0 2px 8px rgba(0,0,0,0.1);">
                     <h2 style="color: {plan['color']}; text-align: center; margin: 0;">{plan['name']}</h2>
-                    <h1 style="color: {plan['color']}; text-align: center; margin: 10px 0;">{plan['price']}<span style="font-size: 16px;">{plan['period']}</span></h1>
+                    <h1 style="color: {plan['color']}; text-align: center; margin: 10px 0;">{plan['price']}<span style="font-size: 16px;'>{plan['period']}</span></h1>
                 </div>
                 """, unsafe_allow_html=True)
             
@@ -481,7 +564,7 @@ elif st.session_state.page == "data_import":
             st.markdown("### معاينة البيانات")
             st.dataframe(df.head(10), use_container_width=True)
             
-            with st.expander("📊 معلومات عن الأعمدة"):
+            with st.expander(" معلومات عن الأعمدة"):
                 col_info = pd.DataFrame({
                     'العمود': df.columns.tolist(),
                     'النوع': [str(dtype) for dtype in df.dtypes],
@@ -513,7 +596,7 @@ elif st.session_state.page == "eda":
         with st.expander("عرض الملخص الإحصائي", expanded=True):
             st.dataframe(df.describe(), use_container_width=True)
         
-        st.markdown("### 🔍 تحليل القيم المفقودة")
+        st.markdown("###  تحليل القيم المفقودة")
         missing_data = df.isnull().sum().reset_index()
         missing_data.columns = ['Column', 'Missing Count']
         missing_data = missing_data[missing_data['Missing Count'] > 0]
@@ -656,7 +739,7 @@ elif st.session_state.page == "prescriptive":
                     """, unsafe_allow_html=True)
         
         st.markdown("---")
-        st.markdown("###  خطة العمل المقترحة")
+        st.markdown("### 📋 خطة العمل المقترحة")
         
         st.markdown("""
         <div class="success-box">
@@ -677,7 +760,7 @@ elif st.session_state.page == "ai_chat":
     if st.session_state.df is None:
         st.warning("⚠️ يرجى رفع البيانات أولاً")
     else:
-        st.markdown("💡 **أمثلة على الأسئلة:**")
+        st.markdown(" **أمثلة على الأسئلة:**")
         st.markdown("- كم عدد الصفوف والأعمدة؟")
         st.markdown("- ما هي الأعمدة المتاحة؟")
         st.markdown("- ما هو متوسط القيم الرقمية؟")
@@ -688,7 +771,7 @@ elif st.session_state.page == "ai_chat":
                               label_visibility="collapsed")
         
         if prompt:
-            with st.spinner("🤔 جاري التحليل..."):
+            with st.spinner(" جاري التحليل..."):
                 response = ""
                 prompt_lower = prompt.lower()
                 
@@ -706,7 +789,7 @@ elif st.session_state.page == "ai_chat":
                         for col in num_cols[:5]:
                             response += f"- **{col}**: {st.session_state.df[col].mean():.2f}\n"
                     else:
-                        response = "❌ لا توجد أعمدة رقمية لحساب المتوسط."
+                        response = " لا توجد أعمدة رقمية لحساب المتوسط."
                 
                 elif "فقد" in prompt_lower or "missing" in prompt_lower:
                     missing = st.session_state.df.isnull().sum().sum()
@@ -717,7 +800,7 @@ elif st.session_state.page == "ai_chat":
                 
                 st.markdown(f"""
                 <div class="info-box">
-                    <strong>🤖 المساعد الذكي:</strong><br>
+                    <strong> المساعد الذكي:</strong><br>
                     {response}
                 </div>
                 """, unsafe_allow_html=True)
@@ -733,7 +816,7 @@ elif st.session_state.page == "export":
         col1, col2 = st.columns(2)
         
         with col1:
-            st.markdown("####  تصدير كـ CSV")
+            st.markdown("#### 📄 تصدير كـ CSV")
             csv = st.session_state.df.to_csv(index=False).encode('utf-8-sig')
             st.download_button(
                 label="📥 تحميل CSV",
@@ -744,7 +827,7 @@ elif st.session_state.page == "export":
             )
         
         with col2:
-            st.markdown("####  تصدير كـ Excel")
+            st.markdown("#### 📊 تصدير كـ Excel")
             output = io.BytesIO()
             with pd.ExcelWriter(output, engine='xlsxwriter') as writer:
                 st.session_state.df.to_excel(writer, index=False, sheet_name='Data')
