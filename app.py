@@ -8,18 +8,14 @@ from sklearn.model_selection import train_test_split
 from sklearn.metrics import mean_squared_error, r2_score
 import io
 from datetime import datetime
-import yaml
-from yaml.loader import SafeLoader
-import streamlit_authenticator as stauth
 
 # استيراد الملفات المحلية
 import config
-from translations import get_text
 
 # إعدادات الصفحة
 st.set_page_config(
     page_title=config.APP_CONFIG["app_name"],
-    page_icon="",
+    page_icon="📊",
     layout="wide",
     initial_sidebar_state="expanded"
 )
@@ -29,11 +25,6 @@ st.markdown("""
 <style>
     .main {
         background-color: #f5f7fa;
-    }
-    
-    .css-1d391kg {
-        background-color: #ffffff;
-        border-right: 1px solid #e1e8ed;
     }
     
     h1, h2, h3 {
@@ -90,12 +81,68 @@ st.markdown("""
         box-shadow: 0 4px 6px rgba(0,0,0,0.1);
     }
     
+    .login-container {
+        max-width: 450px;
+        margin: 80px auto;
+        padding: 40px;
+        background: white;
+        border-radius: 20px;
+        box-shadow: 0 10px 40px rgba(0,0,0,0.1);
+    }
+    
+    .login-header {
+        text-align: center;
+        margin-bottom: 30px;
+    }
+    
+    .login-header h1 {
+        color: #2d3748;
+        font-size: 32px;
+        margin-bottom: 10px;
+    }
+    
+    .login-header p {
+        color: #718096;
+        font-size: 16px;
+    }
+    
     #MainMenu {visibility: hidden;}
     footer {visibility: hidden;}
 </style>
 """, unsafe_allow_html=True)
 
+# ==================== نظام تسجيل الدخول البسيط ====================
+
+# بيانات المستخدمين (مخزنة في الكود مباشرة)
+USERS = {
+    'admin': {
+        'password': 'Smart@2026',
+        'name': 'مدير النظام',
+        'email': 'admin@smartanalytics.com',
+        'role': 'admin',
+        'plan': 'Enterprise'
+    },
+    'demo_user': {
+        'password': 'Demo@2026',
+        'name': 'مستخدم تجريبي',
+        'email': 'demo@smartanalytics.com',
+        'role': 'user',
+        'plan': 'Pro'
+    },
+    'user1': {
+        'password': 'User@2026',
+        'name': 'مستخدم عادي',
+        'email': 'user1@smartanalytics.com',
+        'role': 'user',
+        'plan': 'Free'
+    }
+}
+
 # تهيئة الحالة
+if "logged_in" not in st.session_state:
+    st.session_state.logged_in = False
+if "current_user" not in st.session_state:
+    st.session_state.current_user = None
 if "lang" not in st.session_state:
     st.session_state.lang = "ar"
 if "page" not in st.session_state:
@@ -103,59 +150,61 @@ if "page" not in st.session_state:
 if "df" not in st.session_state:
     st.session_state.df = None
 
-# تحميل ملف التكوين للمصادقة
-def load_config():
-    try:
-        with open('config.yaml', 'r') as file:
-            config_data = yaml.load(file, Loader=SafeLoader)
-        return config_data
-    except Exception as e:
-        st.error(f"Error loading config: {e}")
-        return None
-
-config_data = load_config()
-
-# تهيئة المصادقة
-if config_data:
-    authenticator = stauth.Authenticate(
-        config_data['credentials'],
-        config_data['cookie']['name'],
-        config_data['cookie']['key'],
-        config_data['cookie']['expiry_days']
-    )
-else:
-    authenticator = None
-
 # ==================== صفحة تسجيل الدخول ====================
-if authenticator is None:
-    st.error("❌ خطأ في تحميل نظام المصادقة. يرجى التحقق من ملف config.yaml")
+
+if not st.session_state.logged_in:
+    st.markdown("""
+    <div class="login-container">
+        <div class="login-header">
+            <div style="font-size: 64px; margin-bottom: 20px;"></div>
+            <h1>Smart Analytics Pro</h1>
+            <p>منصة احترافية لتحليل البيانات والذكاء الاصطناعي</p>
+        </div>
+    </div>
+    """, unsafe_allow_html=True)
+    
+    st.markdown("### 🔐 تسجيل الدخول")
+    
+    col1, col2, col3 = st.columns([1, 2, 1])
+    with col2:
+        username = st.text_input("👤 اسم المستخدم", placeholder="admin")
+        password = st.text_input("🔑 كلمة المرور", type="password", placeholder="Smart@2026")
+        
+        col_btn1, col_btn2 = st.columns(2)
+        with col_btn1:
+            login_clicked = st.button("🚪 دخول", use_container_width=True, type="primary")
+        with col_btn2:
+            st.markdown("")
+    
+    if login_clicked:
+        if username in USERS and USERS[username]['password'] == password:
+            st.session_state.logged_in = True
+            st.session_state.current_user = {
+                'username': username,
+                'name': USERS[username]['name'],
+                'email': USERS[username]['email'],
+                'role': USERS[username]['role'],
+                'plan': USERS[username]['plan']
+            }
+            st.success(f"✅ مرحباً {USERS[username]['name']}!")
+            st.rerun()
+        else:
+            st.error("❌ اسم المستخدم أو كلمة المرور غير صحيحة")
+    
+    st.markdown("---")
+    st.markdown("""
+    <div style="text-align: center; color: #718096; font-size: 12px;">
+        <p><strong>بيانات تجريبية:</strong></p>
+        <p>المستخدم: <code>admin</code> | كلمة المرور: <code>Smart@2026</code></p>
+        <p>المستخدم: <code>demo_user</code> | كلمة المرور: <code>Demo@2026</code></p>
+    </div>
+    """, unsafe_allow_html=True)
+    
     st.stop()
 
-# تسجيل الدخول
-authenticator.login(location='main')
+# ==================== المنصة الرئيسية (بعد تسجيل الدخول) ====================
 
-# التحقق من حالة تسجيل الدخول
-if st.session_state.get('authentication_status') is False:
-    st.error('❌ اسم المستخدم أو كلمة المرور غير صحيحة')
-    st.stop()
-elif st.session_state.get('authentication_status') is None:
-    st.warning('⚠️ يرجى إدخال اسم المستخدم وكلمة المرور')
-    st.stop()
-
-# الحصول على معلومات المستخدم
-username = st.session_state.get('username', '')
-name = st.session_state.get('name', '')
-email = st.session_state.get('email', '')
-
-# الحصول على خطة الاشتراك
-def get_user_plan(user):
-    if config_data and user in config_data['credentials']['usernames']:
-        return config_data['credentials']['usernames'][user].get('subscription_plan', 'Free')
-    return 'Free'
-
-user_plan = get_user_plan(username)
-
-# ==================== دوال المنصة ====================
+current_user = st.session_state.current_user
 
 def set_language(lang):
     st.session_state.lang = lang
@@ -197,14 +246,14 @@ def generate_local_ai_insights(df, lang):
             top_corr = max_corr.index[0]
             val = round(max_corr.iloc[0], 2)
             if val > 0.7:
-                insights.append(f" ارتباط قوي بين {top_corr[0]} و {top_corr[1]} ({val})")
+                insights.append(f"🔗 ارتباط قوي بين {top_corr[0]} و {top_corr[1]} ({val})")
 
     if len(categorical_cols) >= 1 and len(numeric_cols) >= 1:
         cat_col = categorical_cols[0]
         num_col = numeric_cols[0]
         if df[cat_col].nunique() < 20:
             top_cat = df.groupby(cat_col)[num_col].sum().sort_values(ascending=False).head(1)
-            insights.append(f" {top_cat.index[0]} هو الأعلى أداءً بـ {round(top_cat.values[0], 2)}")
+            insights.append(f"🏆 {top_cat.index[0]} هو الأعلى أداءً بـ {round(top_cat.values[0], 2)}")
 
     if not insights:
         return ["✅ البيانات تبدو نظيفة وجيدة للتحليل المتقدم."]
@@ -218,8 +267,9 @@ with st.sidebar:
     <div style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
                 color: white; padding: 15px; border-radius: 10px; margin: 10px 0;
                 text-align: center;">
-        <div style="font-size: 14px;">👤 {name}</div>
-        <div style="font-size: 12px; margin-top: 5px;">⭐ {user_plan} Plan</div>
+        <div style="font-size: 14px;">👤 {current_user['name']}</div>
+        <div style="font-size: 12px; margin-top: 5px;">⭐ {current_user['plan']} Plan</div>
+        <div style="font-size: 11px; margin-top: 3px; opacity: 0.9;">{current_user['email']}</div>
     </div>
     """, unsafe_allow_html=True)
     
@@ -229,11 +279,11 @@ with st.sidebar:
     st.markdown("### 🌐 اللغة / Language")
     lang_col1, lang_col2 = st.columns(2)
     with lang_col1:
-        if st.button("🇪 عربي", use_container_width=True, type="primary" if st.session_state.lang == "ar" else "secondary"):
+        if st.button("🇬 عربي", use_container_width=True, type="primary" if st.session_state.lang == "ar" else "secondary"):
             set_language("ar")
             st.rerun()
     with lang_col2:
-        if st.button("🇬🇧 English", use_container_width=True, type="primary" if st.session_state.lang == "en" else "secondary"):
+        if st.button("🇬 English", use_container_width=True, type="primary" if st.session_state.lang == "en" else "secondary"):
             set_language("en")
             st.rerun()
 
@@ -242,13 +292,13 @@ with st.sidebar:
     # قائمة التنقل
     st.markdown("### 📍 التنقل السريع")
     menu = {
-        "home": " الرئيسية",
-        "pricing": " الأسعار",
+        "home": "🏠 الرئيسية",
+        "pricing": "💰 الأسعار",
         "data_import": "📥 استيراد البيانات",
         "eda": "📊 التحليل الاستكشافي",
         "diagnostic": "🔍 التحليل التشخيصي",
         "predictive": "🔮 التحليل التنبؤي",
-        "prescriptive": "💡 التحليل الإرشادي",
+        "prescriptive": " التحليل الإرشادي",
         "ai_chat": "🤖 المساعد الذكي",
         "export": "💾 التصدير"
     }
@@ -261,8 +311,10 @@ with st.sidebar:
     st.markdown("---")
     
     # زر تسجيل الخروج
-    if st.button("🚪 تسجيل الخروج", use_container_width=True, type="secondary"):
-        authenticator.logout(location='main')
+    if st.button(" تسجيل الخروج", use_container_width=True, type="secondary"):
+        st.session_state.logged_in = False
+        st.session_state.current_user = None
+        st.session_state.page = "home"
         st.rerun()
     
     if st.session_state.df is not None:
@@ -329,14 +381,14 @@ if st.session_state.page == "home":
     st.markdown("---")
     
     st.info(f"""
-    ### مرحباً {name}! 👋
+    ### مرحباً {current_user['name']}! 👋
     
     **ابدأ الآن في 3 خطوات بسيطة:**
-    1. 📥 اضغط على "استيراد البيانات" من القائمة الجانبية
+    1.  اضغط على "استيراد البيانات" من القائمة الجانبية
     2. 📊 ارفع ملف CSV أو Excel
     3. 🎯 استكشف التحليلات والرؤى الذكية
     
-    *💡 المنصة تعمل محلياً 100% بدون الحاجة لأي API Keys*
+    * المنصة تعمل محلياً 100% بدون الحاجة لأي API Keys*
     """)
 
 elif st.session_state.page == "pricing":
@@ -347,7 +399,7 @@ elif st.session_state.page == "pricing":
     
     plans = [
         {
-            "name": "🆓 Free",
+            "name": " Free",
             "price": "$0",
             "period": "/شهر",
             "features": ["3 مشاريع نشطة", "تخزين 100MB", "تحليل استكشافي فقط", "تصدير PDF بعلامة مائية"],
@@ -403,7 +455,7 @@ elif st.session_state.page == "pricing":
             st.button("اشترك الآن", use_container_width=True, type=plan["button_type"])
 
 elif st.session_state.page == "data_import":
-    st.markdown("##  استيراد البيانات")
+    st.markdown("## 📥 استيراد البيانات")
     st.markdown("ارفع ملف CSV أو Excel لبدء التحليل")
     
     uploaded_file = st.file_uploader("اختر ملف CSV أو Excel", type=['csv', 'xlsx', 'xls'], 
@@ -429,7 +481,7 @@ elif st.session_state.page == "data_import":
             st.markdown("### معاينة البيانات")
             st.dataframe(df.head(10), use_container_width=True)
             
-            with st.expander(" معلومات عن الأعمدة"):
+            with st.expander("📊 معلومات عن الأعمدة"):
                 col_info = pd.DataFrame({
                     'العمود': df.columns.tolist(),
                     'النوع': [str(dtype) for dtype in df.dtypes],
@@ -439,7 +491,7 @@ elif st.session_state.page == "data_import":
                 st.dataframe(col_info, use_container_width=True)
 
 elif st.session_state.page == "eda":
-    st.markdown("##  التحليل الاستكشافي (EDA)")
+    st.markdown("## 📊 التحليل الاستكشافي (EDA)")
     
     if st.session_state.df is None:
         st.warning("⚠️ يرجى رفع البيانات أولاً من صفحة استيراد البيانات")
@@ -475,7 +527,7 @@ elif st.session_state.page == "eda":
         else:
             st.success("✅ ممتاز! لا توجد قيم مفقودة في البيانات.")
         
-        st.markdown("###  مصفوفة الارتباط")
+        st.markdown("### 🔗 مصفوفة الارتباط")
         numeric_df = df.select_dtypes(include=[np.number])
         if len(numeric_df.columns) > 1:
             corr = numeric_df.corr()
@@ -492,7 +544,7 @@ elif st.session_state.page == "diagnostic":
     if st.session_state.df is None:
         st.warning("⚠️ يرجى رفع البيانات أولاً")
     else:
-        st.markdown("### كشف الشذوذ (Anomaly Detection)")
+        st.markdown("### 🔍 كشف الشذوذ (Anomaly Detection)")
         numeric_cols = st.session_state.df.select_dtypes(include=[np.number]).columns.tolist()
         
         if numeric_cols:
@@ -537,7 +589,7 @@ elif st.session_state.page == "predictive":
     if st.session_state.df is None:
         st.warning("⚠️ يرجى رفع البيانات أولاً")
     else:
-        st.info(" يتم استخدام نموذج Linear Regression للتنبؤ")
+        st.info("🤖 يتم استخدام نموذج Linear Regression للتنبؤ")
         
         numeric_cols = st.session_state.df.select_dtypes(include=[np.number]).columns.tolist()
         
@@ -584,7 +636,7 @@ elif st.session_state.page == "prescriptive":
     if st.session_state.df is None:
         st.warning("⚠️ يرجى رفع البيانات أولاً")
     else:
-        st.markdown("### التوصيات المبنية على البيانات")
+        st.markdown("### 💡 التوصيات المبنية على البيانات")
         
         with st.spinner("🤖 جاري تحليل البيانات واستخراج الرؤى..."):
             insights = generate_local_ai_insights(st.session_state.df, st.session_state.lang)
@@ -592,7 +644,7 @@ elif st.session_state.page == "prescriptive":
             for i, insight in enumerate(insights, 1):
                 if "⚠️" in insight:
                     st.warning(insight)
-                elif "" in insight:
+                elif "🔗" in insight:
                     st.info(insight)
                 elif "🏆" in insight:
                     st.success(insight)
@@ -604,7 +656,7 @@ elif st.session_state.page == "prescriptive":
                     """, unsafe_allow_html=True)
         
         st.markdown("---")
-        st.markdown("### 📋 خطة العمل المقترحة")
+        st.markdown("###  خطة العمل المقترحة")
         
         st.markdown("""
         <div class="success-box">
@@ -661,7 +713,7 @@ elif st.session_state.page == "ai_chat":
                     response = f"⚠️ يوجد إجمالي **{missing} قيمة مفقودة** في كامل مجموعة البيانات."
                 
                 else:
-                    response = " عذراً، أنا أركز حالياً على الإحصائيات الوصفية الأساسية. جرب السؤال عن:\n- عدد الصفوف والأعمدة\n- الأعمدة المتاحة\n- المتوسطات\n- القيم المفقودة"
+                    response = "💭 عذراً، أنا أركز حالياً على الإحصائيات الوصفية الأساسية. جرب السؤال عن:\n- عدد الصفوف والأعمدة\n- الأعمدة المتاحة\n- المتوسطات\n- القيم المفقودة"
                 
                 st.markdown(f"""
                 <div class="info-box">
@@ -681,10 +733,10 @@ elif st.session_state.page == "export":
         col1, col2 = st.columns(2)
         
         with col1:
-            st.markdown("#### 📄 تصدير كـ CSV")
+            st.markdown("####  تصدير كـ CSV")
             csv = st.session_state.df.to_csv(index=False).encode('utf-8-sig')
             st.download_button(
-                label=" تحميل CSV",
+                label="📥 تحميل CSV",
                 data=csv,
                 file_name=f"smart_analytics_export_{datetime.now().strftime('%Y%m%d_%H%M%S')}.csv",
                 mime="text/csv",
@@ -692,12 +744,12 @@ elif st.session_state.page == "export":
             )
         
         with col2:
-            st.markdown("#### 📊 تصدير كـ Excel")
+            st.markdown("####  تصدير كـ Excel")
             output = io.BytesIO()
             with pd.ExcelWriter(output, engine='xlsxwriter') as writer:
                 st.session_state.df.to_excel(writer, index=False, sheet_name='Data')
             st.download_button(
-                label=" تحميل Excel",
+                label="📥 تحميل Excel",
                 data=output.getvalue(),
                 file_name=f"smart_analytics_export_{datetime.now().strftime('%Y%m%d_%H%M%S')}.xlsx",
                 mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
