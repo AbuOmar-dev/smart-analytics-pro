@@ -1,0 +1,22 @@
+credentials:
+  usernames:
+    admin:
+      email: admin@smartanalytics.com
+      name: Admin User
+      password: $2b$12$XpZLxhTb5cF8vN9mK2jR3eYqH4wZ1pL6sT8uV0xW2yA3bC4dE5fG6h  # Smart@2026
+      role: admin
+    demo_user:
+      email: demo@smartanalytics.com
+      name: Demo User
+      password: $2b$12$YqM3nR7sT9uV1wX3yA5bC7dE9fG1hI3jK5lM7nO9pQ1rS3tU5vW7x  # Demo@2026
+      role: user
+
+cookie:
+  expiry_days: 30
+  key: smart_analytics_pro_secret_key_2026
+  name: smart-analytics-cookie
+
+preauthorized:
+  emails:
+    - admin@smartanalytics.com
+    - demo@smartanalytics.com
