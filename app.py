@@ -17,7 +17,7 @@ import config
 # إعدادات الصفحة
 st.set_page_config(
     page_title=config.APP_CONFIG["app_name"],
-    page_icon="",
+    page_icon="📊",
     layout="wide",
     initial_sidebar_state="expanded"
 )
@@ -219,7 +219,7 @@ if not st.session_state.logged_in:
             
             col_btn1, col_btn2 = st.columns(2)
             with col_btn1:
-                if st.button("✅ تسجيل الحساب", use_container_width=True, type="primary"):
+                if st.button("✅ تسجيل الحساب", use_container_width=True, type="primary", key="btn_register"):
                     if not new_username or not new_password or not new_name or not new_email:
                         st.error("❌ يرجى ملء جميع الحقول")
                     elif new_password != confirm_password:
@@ -237,7 +237,7 @@ if not st.session_state.logged_in:
                             st.error(f"❌ {message}")
             
             with col_btn2:
-                if st.button("🔐 لديك حساب؟ دخول", use_container_width=True, type="secondary"):
+                if st.button("🔐 لديك حساب؟ دخول", use_container_width=True, type="secondary", key="btn_go_login"):
                     st.session_state.show_register = False
                     st.rerun()
     else:
@@ -245,12 +245,12 @@ if not st.session_state.logged_in:
         
         col1, col2, col3 = st.columns([1, 2, 1])
         with col2:
-            username = st.text_input("👤 اسم المستخدم", placeholder="أدخل اسم المستخدم")
-            password = st.text_input("🔑 كلمة المرور", type="password", placeholder="أدخل كلمة المرور")
+            username = st.text_input("👤 اسم المستخدم", placeholder="أدخل اسم المستخدم", key="login_username")
+            password = st.text_input("🔑 كلمة المرور", type="password", placeholder="أدخل كلمة المرور", key="login_password")
             
             col_btn1, col_btn2 = st.columns(2)
             with col_btn1:
-                if st.button("🚪 دخول", use_container_width=True, type="primary"):
+                if st.button("🚪 دخول", use_container_width=True, type="primary", key="btn_login"):
                     users = load_users()
                     if username in users and users[username]['password'] == password:
                         st.session_state.logged_in = True
@@ -264,13 +264,13 @@ if not st.session_state.logged_in:
                         st.success(f"✅ مرحباً {users[username]['name']}!")
                         st.rerun()
                     else:
-                        st.error(" اسم المستخدم أو كلمة المرور غير صحيحة")
+                        st.error("❌ اسم المستخدم أو كلمة المرور غير صحيحة")
             
             with col_btn2:
                 st.markdown("")
             
             st.markdown("---")
-            if st.button("📝 ليس لديك حساب؟ سجل الآن", use_container_width=True, type="secondary"):
+            if st.button("📝 ليس لديك حساب؟ سجل الآن", use_container_width=True, type="secondary", key="btn_go_register"):
                 st.session_state.show_register = True
                 st.rerun()
         
@@ -328,7 +328,7 @@ def generate_local_ai_insights(df, lang):
             top_corr = max_corr.index[0]
             val = round(max_corr.iloc[0], 2)
             if val > 0.7:
-                insights.append(f" ارتباط قوي بين {top_corr[0]} و {top_corr[1]} ({val})")
+                insights.append(f"🔗 ارتباط قوي بين {top_corr[0]} و {top_corr[1]} ({val})")
 
     if len(categorical_cols) >= 1 and len(numeric_cols) >= 1:
         cat_col = categorical_cols[0]
@@ -370,11 +370,11 @@ with st.sidebar:
     st.markdown("###  اللغة / Language")
     lang_col1, lang_col2 = st.columns(2)
     with lang_col1:
-        if st.button("🇪🇬 عربي", use_container_width=True, type="primary" if st.session_state.lang == "ar" else "secondary"):
+        if st.button("🇪🇬 عربي", use_container_width=True, type="primary" if st.session_state.lang == "ar" else "secondary", key="btn_ar"):
             set_language("ar")
             st.rerun()
     with lang_col2:
-        if st.button("🇬🇧 English", use_container_width=True, type="primary" if st.session_state.lang == "en" else "secondary"):
+        if st.button("🇬🇧 English", use_container_width=True, type="primary" if st.session_state.lang == "en" else "secondary", key="btn_en"):
             set_language("en")
             st.rerun()
 
@@ -383,26 +383,26 @@ with st.sidebar:
     # قائمة التنقل
     st.markdown("### 📍 التنقل السريع")
     menu = {
-        "home": "🏠 الرئيسية",
+        "home": " الرئيسية",
         "pricing": "💰 الأسعار",
         "data_import": "📥 استيراد البيانات",
-        "eda": "📊 التحليل الاستكشافي",
-        "diagnostic": " التحليل التشخيصي",
+        "eda": " التحليل الاستكشافي",
+        "diagnostic": "🔍 التحليل التشخيصي",
         "predictive": "🔮 التحليل التنبؤي",
         "prescriptive": "💡 التحليل الإرشادي",
-        "ai_chat": " المساعد الذكي",
-        "export": " التصدير"
+        "ai_chat": "🤖 المساعد الذكي",
+        "export": "💾 التصدير"
     }
     
     for key, label in menu.items():
-        if st.button(label, use_container_width=True, type="primary" if st.session_state.page == key else "secondary"):
+        if st.button(label, use_container_width=True, type="primary" if st.session_state.page == key else "secondary", key=f"nav_{key}"):
             navigate_to(key)
             st.rerun()
     
     st.markdown("---")
     
     # زر تسجيل الخروج
-    if st.button("🚪 تسجيل الخروج", use_container_width=True, type="secondary"):
+    if st.button("🚪 تسجيل الخروج", use_container_width=True, type="secondary", key="btn_logout"):
         st.session_state.logged_in = False
         st.session_state.current_user = None
         st.session_state.page = "home"
@@ -437,7 +437,7 @@ if st.session_state.page == "home":
     with col1:
         st.markdown("""
         <div class="info-box" style="text-align: center;">
-            <div style="font-size: 40px; margin-bottom: 10px;"></div>
+            <div style="font-size: 40px; margin-bottom: 10px;">📊</div>
             <h3>التحليل الاستكشافي</h3>
             <p>فهم شامل لبياناتك مع رسوم بيانية تفاعلية</p>
         </div>
@@ -455,7 +455,7 @@ if st.session_state.page == "home":
     with col3:
         st.markdown("""
         <div class="warning-box" style="text-align: center;">
-            <div style="font-size: 40px; margin-bottom: 10px;"></div>
+            <div style="font-size: 40px; margin-bottom: 10px;">🔮</div>
             <h3>التحليل التنبؤي</h3>
             <p>تنبؤات دقيقة باستخدام الذكاء الاصطناعي</p>
         </div>
@@ -478,7 +478,7 @@ if st.session_state.page == "home":
         
         **ابدأ الآن في 3 خطوات بسيطة:**
         1. 📥 اضغط على "استيراد البيانات" من القائمة الجانبية
-        2.  ارفع ملف CSV أو Excel
+        2. 📊 ارفع ملف CSV أو Excel
         3. 🎯 استكشف التحليلات والرؤى الذكية
         
         *💡 المنصة تعمل محلياً 100% بدون الحاجة لأي API Keys*
@@ -492,7 +492,7 @@ elif st.session_state.page == "pricing":
     
     plans = [
         {
-            "name": "🆓 Free",
+            "name": " Free",
             "price": "$0",
             "period": "/شهر",
             "features": ["3 مشاريع نشطة", "تخزين 100MB", "تحليل استكشافي فقط", "تصدير PDF بعلامة مائية"],
@@ -509,7 +509,7 @@ elif st.session_state.page == "pricing":
             "popular": True
         },
         {
-            "name": "🏢 Enterprise",
+            "name": " Enterprise",
             "price": "$99",
             "period": "/شهر",
             "features": ["كل مميزات Pro", "تخزين غير محدود", "White-Label كامل", "API Access", "مدير حساب مخصص", "SLA مضمون 99.9%"],
@@ -537,7 +537,7 @@ elif st.session_state.page == "pricing":
                 <div style="background: white; padding: 20px; border-radius: 12px; margin-bottom: 20px;
                             box-shadow: 0 2px 8px rgba(0,0,0,0.1);">
                     <h2 style="color: {plan['color']}; text-align: center; margin: 0;">{plan['name']}</h2>
-                    <h1 style="color: {plan['color']}; text-align: center; margin: 10px 0;">{plan['price']}<span style="font-size: 16px;">{plan['period']}</span></h1>
+                    <h1 style="color: {plan['color']}; text-align: center; margin: 10px 0;">{plan['price']}<span style="font-size: 16px;'>{plan['period']}</span></h1>
                 </div>
                 """, unsafe_allow_html=True)
             
@@ -545,14 +545,15 @@ elif st.session_state.page == "pricing":
             for feature in plan["features"]:
                 st.markdown(f"✅ {feature}")
             
-            st.button("اشترك الآن", use_container_width=True, type=plan["button_type"])
+            # إضافة key فريد لكل زر
+            st.button("اشترك الآن", use_container_width=True, type=plan["button_type"], key=f"subscribe_{i}")
 
 elif st.session_state.page == "data_import":
     st.markdown("## 📥 استيراد البيانات")
     st.markdown("ارفع ملف CSV أو Excel لبدء التحليل")
     
     uploaded_file = st.file_uploader("اختر ملف CSV أو Excel", type=['csv', 'xlsx', 'xls'], 
-                                     help="يمكنك رفع ملفات حتى 500MB")
+                                     help="يمكنك رفع ملفات حتى 500MB", key="file_uploader")
     
     if uploaded_file is not None:
         df = load_data(uploaded_file)
@@ -587,7 +588,7 @@ elif st.session_state.page == "eda":
     st.markdown("## 📊 التحليل الاستكشافي (EDA)")
     
     if st.session_state.df is None:
-        st.warning("⚠️ يرجى رفع البيانات أولاً من صفحة استيراد البيانات")
+        st.warning("️ يرجى رفع البيانات أولاً من صفحة استيراد البيانات")
     else:
         df = st.session_state.df
         
@@ -641,11 +642,12 @@ elif st.session_state.page == "diagnostic":
         numeric_cols = st.session_state.df.select_dtypes(include=[np.number]).columns.tolist()
         
         if numeric_cols:
-            target_col = st.selectbox("اختر العمود الرقمي للفحص", numeric_cols)
+            target_col = st.selectbox("اختر العمود الرقمي للفحص", numeric_cols, key="diag_target")
             threshold = st.slider("حد الشذوذ (Z-Score Threshold)", 2.0, 4.0, 3.0,
-                                 help="القيم الأقل من -threshold أو الأكبر من +threshold تعتبر شاذة")
+                                 help="القيم الأقل من -threshold أو الأكبر من +threshold تعتبر شاذة",
+                                 key="diag_threshold")
             
-            if st.button("🔍 تشخيص البيانات", type="primary"):
+            if st.button("🔍 تشخيص البيانات", type="primary", key="btn_diagnose"):
                 mean = np.mean(st.session_state.df[target_col])
                 std = np.std(st.session_state.df[target_col])
                 z_scores = np.abs((st.session_state.df[target_col] - mean) / std)
@@ -682,18 +684,18 @@ elif st.session_state.page == "predictive":
     if st.session_state.df is None:
         st.warning("⚠️ يرجى رفع البيانات أولاً")
     else:
-        st.info("🤖 يتم استخدام نموذج Linear Regression للتنبؤ")
+        st.info(" يتم استخدام نموذج Linear Regression للتنبؤ")
         
         numeric_cols = st.session_state.df.select_dtypes(include=[np.number]).columns.tolist()
         
         if len(numeric_cols) >= 2:
             col1, col2 = st.columns(2)
             with col1:
-                target = st.selectbox("اختر العمود المراد التنبؤ به (Target)", numeric_cols)
+                target = st.selectbox("اختر العمود المراد التنبؤ به (Target)", numeric_cols, key="pred_target")
             with col2:
-                feature = st.selectbox("اختر عمود الميزة (Feature)", [c for c in numeric_cols if c != target])
+                feature = st.selectbox("اختر عمود الميزة (Feature)", [c for c in numeric_cols if c != target], key="pred_feature")
             
-            if st.button("🚀 بناء النموذج والتنبؤ", type="primary"):
+            if st.button("🚀 بناء النموذج والتنبؤ", type="primary", key="btn_predict"):
                 X = st.session_state.df[[feature]].values
                 y = st.session_state.df[target].values
                 
@@ -724,12 +726,12 @@ elif st.session_state.page == "predictive":
             st.warning("تحتاج إلى عمودين رقميين على الأقل لإجراء التحليل التنبؤي.")
 
 elif st.session_state.page == "prescriptive":
-    st.markdown("##  التحليل الإرشادي")
+    st.markdown("## 💡 التحليل الإرشادي")
     
     if st.session_state.df is None:
-        st.warning("️ يرجى رفع البيانات أولاً")
+        st.warning("⚠️ يرجى رفع البيانات أولاً")
     else:
-        st.markdown("### 💡 التوصيات المبنية على البيانات")
+        st.markdown("###  التوصيات المبنية على البيانات")
         
         with st.spinner("🤖 جاري تحليل البيانات واستخراج الرؤى..."):
             insights = generate_local_ai_insights(st.session_state.df, st.session_state.lang)
@@ -737,9 +739,9 @@ elif st.session_state.page == "prescriptive":
             for i, insight in enumerate(insights, 1):
                 if "⚠️" in insight:
                     st.warning(insight)
-                elif "" in insight:
+                elif "🔗" in insight:
                     st.info(insight)
-                elif "🏆" in insight:
+                elif "" in insight:
                     st.success(insight)
                 else:
                     st.markdown(f"""
@@ -768,9 +770,9 @@ elif st.session_state.page == "ai_chat":
     st.markdown("اسأل أسئلة عملية عن بياناتك")
     
     if st.session_state.df is None:
-        st.warning("️ يرجى رفع البيانات أولاً")
+        st.warning("⚠️ يرجى رفع البيانات أولاً")
     else:
-        st.markdown("💡 **أمثلة على الأسئلة:**")
+        st.markdown(" **أمثلة على الأسئلة:**")
         st.markdown("- كم عدد الصفوف والأعمدة؟")
         st.markdown("- ما هي الأعمدة المتاحة؟")
         st.markdown("- ما هو متوسط القيم الرقمية؟")
@@ -778,15 +780,16 @@ elif st.session_state.page == "ai_chat":
         
         prompt = st.text_input("اكتب سؤالك هنا:", 
                               placeholder="مثال: ما هو متوسط المبيعات؟",
-                              label_visibility="collapsed")
+                              label_visibility="collapsed",
+                              key="chat_prompt")
         
         if prompt:
-            with st.spinner("🤔 جاري التحليل..."):
+            with st.spinner(" جاري التحليل..."):
                 response = ""
                 prompt_lower = prompt.lower()
                 
                 if "عدد" in prompt_lower or "rows" in prompt_lower or "shape" in prompt_lower:
-                    response = f"📊 يحتوي جدول البيانات على **{len(st.session_state.df)} صف** و **{len(st.session_state.df.columns)} عمود**."
+                    response = f" يحتوي جدول البيانات على **{len(st.session_state.df)} صف** و **{len(st.session_state.df.columns)} عمود**."
                 
                 elif "أعمدة" in prompt_lower or "columns" in prompt_lower:
                     cols_list = ", ".join(st.session_state.df.columns.tolist())
@@ -795,7 +798,7 @@ elif st.session_state.page == "ai_chat":
                 elif "متوسط" in prompt_lower or "mean" in prompt_lower or "average" in prompt_lower:
                     num_cols = st.session_state.df.select_dtypes(include=[np.number]).columns.tolist()
                     if num_cols:
-                        response = " متوسط القيم للأعمدة الرقمية:\n\n"
+                        response = "📈 متوسط القيم للأعمدة الرقمية:\n\n"
                         for col in num_cols[:5]:
                             response += f"- **{col}**: {st.session_state.df[col].mean():.2f}\n"
                     else:
@@ -806,11 +809,11 @@ elif st.session_state.page == "ai_chat":
                     response = f"⚠️ يوجد إجمالي **{missing} قيمة مفقودة** في كامل مجموعة البيانات."
                 
                 else:
-                    response = " عذراً، أنا أركز حالياً على الإحصائيات الوصفية الأساسية. جرب السؤال عن:\n- عدد الصفوف والأعمدة\n- الأعمدة المتاحة\n- المتوسطات\n- القيم المفقودة"
+                    response = "💭 عذراً، أنا أركز حالياً على الإحصائيات الوصفية الأساسية. جرب السؤال عن:\n- عدد الصفوف والأعمدة\n- الأعمدة المتاحة\n- المتوسطات\n- القيم المفقودة"
                 
                 st.markdown(f"""
                 <div class="info-box">
-                    <strong> المساعد الذكي:</strong><br>
+                    <strong>🤖 المساعد الذكي:</strong><br>
                     {response}
                 </div>
                 """, unsafe_allow_html=True)
@@ -833,7 +836,8 @@ elif st.session_state.page == "export":
                 data=csv,
                 file_name=f"smart_analytics_export_{datetime.now().strftime('%Y%m%d_%H%M%S')}.csv",
                 mime="text/csv",
-                use_container_width=True
+                use_container_width=True,
+                key="btn_download_csv"
             )
         
         with col2:
@@ -846,7 +850,8 @@ elif st.session_state.page == "export":
                 data=output.getvalue(),
                 file_name=f"smart_analytics_export_{datetime.now().strftime('%Y%m%d_%H%M%S')}.xlsx",
                 mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
-                use_container_width=True
+                use_container_width=True,
+                key="btn_download_excel"
             )
         
         st.success("✅ تم تجهيز الملفات للتصدير بنجاح!")
