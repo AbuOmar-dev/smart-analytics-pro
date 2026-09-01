@@ -198,7 +198,7 @@ if not st.session_state.logged_in:
     st.markdown("""
     <div class="login-container">
         <div class="login-header">
-            <div style="font-size: 64px; margin-bottom: 20px;">📊</div>
+            <div style="font-size: 64px; margin-bottom: 20px;"></div>
             <h1>Smart Analytics Pro</h1>
             <p>منصة احترافية لتحليل البيانات والذكاء الاصطناعي</p>
         </div>
@@ -264,7 +264,7 @@ if not st.session_state.logged_in:
                         st.success(f"✅ مرحباً {users[username]['name']}!")
                         st.rerun()
                     else:
-                        st.error("❌ اسم المستخدم أو كلمة المرور غير صحيحة")
+                        st.error(" اسم المستخدم أو كلمة المرور غير صحيحة")
             
             with col_btn2:
                 st.markdown("")
@@ -318,7 +318,7 @@ def generate_local_ai_insights(df, lang):
         if count > 0:
             pct = round((count / len(df)) * 100, 1)
             if pct > 5:
-                insights.append(f"️ العمود {col} يحتوي على {count} قيمة مفقودة ({pct}%)")
+                insights.append(f"⚠️ العمود {col} يحتوي على {count} قيمة مفقودة ({pct}%)")
 
     if len(numeric_cols) >= 2:
         corr_matrix = df[numeric_cols].corr().abs()
@@ -328,7 +328,7 @@ def generate_local_ai_insights(df, lang):
             top_corr = max_corr.index[0]
             val = round(max_corr.iloc[0], 2)
             if val > 0.7:
-                insights.append(f"🔗 ارتباط قوي بين {top_corr[0]} و {top_corr[1]} ({val})")
+                insights.append(f" ارتباط قوي بين {top_corr[0]} و {top_corr[1]} ({val})")
 
     if len(categorical_cols) >= 1 and len(numeric_cols) >= 1:
         cat_col = categorical_cols[0]
@@ -344,24 +344,33 @@ def generate_local_ai_insights(df, lang):
 # ==================== الشريط الجانبي ====================
 
 with st.sidebar:
-    # معلومات المستخدم
-    st.markdown(f"""
-    <div style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-                color: white; padding: 15px; border-radius: 10px; margin: 10px 0;
-                text-align: center;">
-        <div style="font-size: 14px;">👤 {current_user['name']}</div>
-        <div style="font-size: 12px; margin-top: 5px;">⭐ {current_user['plan']} Plan</div>
-        <div style="font-size: 11px; margin-top: 3px; opacity: 0.9;">{current_user['email']}</div>
-    </div>
-    """, unsafe_allow_html=True)
+    # معلومات المستخدم - مع فحص إذا كان current_user موجود
+    if current_user is not None:
+        st.markdown(f"""
+        <div style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+                    color: white; padding: 15px; border-radius: 10px; margin: 10px 0;
+                    text-align: center;">
+            <div style="font-size: 14px;">👤 {current_user.get('name', 'مستخدم')}</div>
+            <div style="font-size: 12px; margin-top: 5px;">⭐ {current_user.get('plan', 'Free')} Plan</div>
+            <div style="font-size: 11px; margin-top: 3px; opacity: 0.9;">{current_user.get('email', '')}</div>
+        </div>
+        """, unsafe_allow_html=True)
+    else:
+        st.markdown("""
+        <div style="background: #e2e8f0;
+                    color: #4a5568; padding: 15px; border-radius: 10px; margin: 10px 0;
+                    text-align: center;">
+            <div style="font-size: 14px;">👤 غير مسجل الدخول</div>
+        </div>
+        """, unsafe_allow_html=True)
     
     st.markdown("---")
     
     # اختيار اللغة
-    st.markdown("### 🌐 اللغة / Language")
+    st.markdown("###  اللغة / Language")
     lang_col1, lang_col2 = st.columns(2)
     with lang_col1:
-        if st.button("🇪 عربي", use_container_width=True, type="primary" if st.session_state.lang == "ar" else "secondary"):
+        if st.button("🇪🇬 عربي", use_container_width=True, type="primary" if st.session_state.lang == "ar" else "secondary"):
             set_language("ar")
             st.rerun()
     with lang_col2:
@@ -381,8 +390,8 @@ with st.sidebar:
         "diagnostic": " التحليل التشخيصي",
         "predictive": "🔮 التحليل التنبؤي",
         "prescriptive": "💡 التحليل الإرشادي",
-        "ai_chat": "🤖 المساعد الذكي",
-        "export": "💾 التصدير"
+        "ai_chat": " المساعد الذكي",
+        "export": " التصدير"
     }
     
     for key, label in menu.items():
@@ -428,7 +437,7 @@ if st.session_state.page == "home":
     with col1:
         st.markdown("""
         <div class="info-box" style="text-align: center;">
-            <div style="font-size: 40px; margin-bottom: 10px;">📊</div>
+            <div style="font-size: 40px; margin-bottom: 10px;"></div>
             <h3>التحليل الاستكشافي</h3>
             <p>فهم شامل لبياناتك مع رسوم بيانية تفاعلية</p>
         </div>
@@ -455,7 +464,7 @@ if st.session_state.page == "home":
     with col4:
         st.markdown("""
         <div class="info-box" style="text-align: center;">
-            <div style="font-size: 40px; margin-bottom: 10px;"></div>
+            <div style="font-size: 40px; margin-bottom: 10px;">💡</div>
             <h3>التحليل الإرشادي</h3>
             <p>توصيات عملية لزيادة العائد على الاستثمار</p>
         </div>
@@ -463,16 +472,17 @@ if st.session_state.page == "home":
     
     st.markdown("---")
     
-    st.info(f"""
-    ### مرحباً {current_user['name']}! 👋
-    
-    **ابدأ الآن في 3 خطوات بسيطة:**
-    1.  اضغط على "استيراد البيانات" من القائمة الجانبية
-    2. 📊 ارفع ملف CSV أو Excel
-    3.  استكشف التحليلات والرؤى الذكية
-    
-    *💡 المنصة تعمل محلياً 100% بدون الحاجة لأي API Keys*
-    """)
+    if current_user:
+        st.info(f"""
+        ### مرحباً {current_user.get('name', 'مستخدم')}! 👋
+        
+        **ابدأ الآن في 3 خطوات بسيطة:**
+        1. 📥 اضغط على "استيراد البيانات" من القائمة الجانبية
+        2.  ارفع ملف CSV أو Excel
+        3. 🎯 استكشف التحليلات والرؤى الذكية
+        
+        *💡 المنصة تعمل محلياً 100% بدون الحاجة لأي API Keys*
+        """)
 
 elif st.session_state.page == "pricing":
     st.markdown("## 💰 باقات الاشتراك")
@@ -527,7 +537,7 @@ elif st.session_state.page == "pricing":
                 <div style="background: white; padding: 20px; border-radius: 12px; margin-bottom: 20px;
                             box-shadow: 0 2px 8px rgba(0,0,0,0.1);">
                     <h2 style="color: {plan['color']}; text-align: center; margin: 0;">{plan['name']}</h2>
-                    <h1 style="color: {plan['color']}; text-align: center; margin: 10px 0;">{plan['price']}<span style="font-size: 16px;'>{plan['period']}</span></h1>
+                    <h1 style="color: {plan['color']}; text-align: center; margin: 10px 0;">{plan['price']}<span style="font-size: 16px;">{plan['period']}</span></h1>
                 </div>
                 """, unsafe_allow_html=True)
             
@@ -596,7 +606,7 @@ elif st.session_state.page == "eda":
         with st.expander("عرض الملخص الإحصائي", expanded=True):
             st.dataframe(df.describe(), use_container_width=True)
         
-        st.markdown("###  تحليل القيم المفقودة")
+        st.markdown("### 🔍 تحليل القيم المفقودة")
         missing_data = df.isnull().sum().reset_index()
         missing_data.columns = ['Column', 'Missing Count']
         missing_data = missing_data[missing_data['Missing Count'] > 0]
@@ -714,10 +724,10 @@ elif st.session_state.page == "predictive":
             st.warning("تحتاج إلى عمودين رقميين على الأقل لإجراء التحليل التنبؤي.")
 
 elif st.session_state.page == "prescriptive":
-    st.markdown("## 💡 التحليل الإرشادي")
+    st.markdown("##  التحليل الإرشادي")
     
     if st.session_state.df is None:
-        st.warning("⚠️ يرجى رفع البيانات أولاً")
+        st.warning("️ يرجى رفع البيانات أولاً")
     else:
         st.markdown("### 💡 التوصيات المبنية على البيانات")
         
@@ -727,7 +737,7 @@ elif st.session_state.page == "prescriptive":
             for i, insight in enumerate(insights, 1):
                 if "⚠️" in insight:
                     st.warning(insight)
-                elif "🔗" in insight:
+                elif "" in insight:
                     st.info(insight)
                 elif "🏆" in insight:
                     st.success(insight)
@@ -758,9 +768,9 @@ elif st.session_state.page == "ai_chat":
     st.markdown("اسأل أسئلة عملية عن بياناتك")
     
     if st.session_state.df is None:
-        st.warning("⚠️ يرجى رفع البيانات أولاً")
+        st.warning("️ يرجى رفع البيانات أولاً")
     else:
-        st.markdown(" **أمثلة على الأسئلة:**")
+        st.markdown("💡 **أمثلة على الأسئلة:**")
         st.markdown("- كم عدد الصفوف والأعمدة؟")
         st.markdown("- ما هي الأعمدة المتاحة؟")
         st.markdown("- ما هو متوسط القيم الرقمية؟")
@@ -771,7 +781,7 @@ elif st.session_state.page == "ai_chat":
                               label_visibility="collapsed")
         
         if prompt:
-            with st.spinner(" جاري التحليل..."):
+            with st.spinner("🤔 جاري التحليل..."):
                 response = ""
                 prompt_lower = prompt.lower()
                 
@@ -785,18 +795,18 @@ elif st.session_state.page == "ai_chat":
                 elif "متوسط" in prompt_lower or "mean" in prompt_lower or "average" in prompt_lower:
                     num_cols = st.session_state.df.select_dtypes(include=[np.number]).columns.tolist()
                     if num_cols:
-                        response = "📈 متوسط القيم للأعمدة الرقمية:\n\n"
+                        response = " متوسط القيم للأعمدة الرقمية:\n\n"
                         for col in num_cols[:5]:
                             response += f"- **{col}**: {st.session_state.df[col].mean():.2f}\n"
                     else:
-                        response = " لا توجد أعمدة رقمية لحساب المتوسط."
+                        response = "❌ لا توجد أعمدة رقمية لحساب المتوسط."
                 
                 elif "فقد" in prompt_lower or "missing" in prompt_lower:
                     missing = st.session_state.df.isnull().sum().sum()
                     response = f"⚠️ يوجد إجمالي **{missing} قيمة مفقودة** في كامل مجموعة البيانات."
                 
                 else:
-                    response = "💭 عذراً، أنا أركز حالياً على الإحصائيات الوصفية الأساسية. جرب السؤال عن:\n- عدد الصفوف والأعمدة\n- الأعمدة المتاحة\n- المتوسطات\n- القيم المفقودة"
+                    response = " عذراً، أنا أركز حالياً على الإحصائيات الوصفية الأساسية. جرب السؤال عن:\n- عدد الصفوف والأعمدة\n- الأعمدة المتاحة\n- المتوسطات\n- القيم المفقودة"
                 
                 st.markdown(f"""
                 <div class="info-box">
