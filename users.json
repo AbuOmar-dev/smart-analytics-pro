@@ -1,0 +1,20 @@
+{
+  "users": [
+    {
+      "username": "admin",
+      "password": "Smart@2026",
+      "name": "مدير النظام",
+      "email": "admin@smartanalytics.com",
+      "plan": "Enterprise",
+      "created_at": "2026-01-01"
+    },
+    {
+      "username": "demo_user",
+      "password": "Demo@2026",
+      "name": "مستخدم تجريبي",
+      "email": "demo@smartanalytics.com",
+      "plan": "Pro",
+      "created_at": "2026-01-01"
+    }
+  ]
+}
