@@ -213,7 +213,7 @@ if not st.session_state.logged_in:
         col1, col2, col3 = st.columns([1, 2, 1])
         with col2:
             new_username = st.text_input("👤 اسم المستخدم", key="reg_username")
-            new_name = st.text_input("👤 الاسم الكامل", key="reg_name")
+            new_name = st.text_input(" الاسم الكامل", key="reg_name")
             new_email = st.text_input("📧 البريد الإلكتروني", key="reg_email")
             new_password = st.text_input("🔑 كلمة المرور", type="password", key="reg_password")
             confirm_password = st.text_input("🔑 تأكيد كلمة المرور", type="password", key="reg_confirm")
@@ -233,16 +233,16 @@ if not st.session_state.logged_in:
                         st.session_state.show_register = False
                         st.rerun()
                     else:
-                        st.error(f"❌ {message}")
+                        st.error(f" {message}")
             
-            if st.button("🔐 لديك حساب؟ دخول", use_container_width=True, type="secondary", key="btn_go_login"):
+            if st.button(" لديك حساب؟ دخول", use_container_width=True, type="secondary", key="btn_go_login"):
                 st.session_state.show_register = False
                 st.rerun()
     else:
         st.markdown("### 🔐 تسجيل الدخول")
         col1, col2, col3 = st.columns([1, 2, 1])
         with col2:
-            username = st.text_input("👤 اسم المستخدم", key="login_user")
+            username = st.text_input(" اسم المستخدم", key="login_user")
             password = st.text_input("🔑 كلمة المرور", type="password", key="login_pass")
             
             if st.button("🚪 دخول", use_container_width=True, type="primary", key="btn_login"):
@@ -262,7 +262,7 @@ if not st.session_state.logged_in:
                     st.error("❌ اسم المستخدم أو كلمة المرور غير صحيحة")
         
         st.markdown("---")
-        if st.button(" ليس لديك حساب؟ سجل الآن", use_container_width=True, type="secondary", key="btn_go_register"):
+        if st.button("📝 ليس لديك حساب؟ سجل الآن", use_container_width=True, type="secondary", key="btn_go_register"):
             st.session_state.show_register = True
             st.rerun()
         
@@ -292,7 +292,7 @@ def generate_local_ai_insights(df):
         if count > 0:
             pct = round((count / len(df)) * 100, 1)
             if pct > 5:
-                insights.append(f"️ العمود {col} يحتوي على {count} قيمة مفقودة ({pct}%)")
+                insights.append(f"⚠️ العمود {col} يحتوي على {count} قيمة مفقودة ({pct}%)")
 
     if len(numeric_cols) >= 2:
         corr_matrix = df[numeric_cols].corr().abs()
@@ -380,7 +380,7 @@ if st.session_state.page == "home":
     with col1:
         st.markdown("""
         <div class="feature-card">
-            <div style="font-size: 60px; margin-bottom: 20px;">📊</div>
+            <div style="font-size: 60px; margin-bottom: 20px;"></div>
             <h3>التحليل الاستكشافي</h3>
             <p>فهم شامل لبياناتك مع رسوم بيانية تفاعلية</p>
         </div>
@@ -398,7 +398,7 @@ if st.session_state.page == "home":
     with col3:
         st.markdown("""
         <div class="feature-card">
-            <div style="font-size: 60px; margin-bottom: 20px;">🔮</div>
+            <div style="font-size: 60px; margin-bottom: 20px;"></div>
             <h3>التحليل التنبؤي</h3>
             <p>تنبؤات دقيقة باستخدام الذكاء الاصطناعي</p>
         </div>
@@ -421,7 +421,7 @@ if st.session_state.page == "home":
             <ol>
                 <li>📥 اضغط على "استيراد البيانات" من القائمة الجانبية</li>
                 <li>📊 ارفع ملف CSV أو Excel</li>
-                <li>🎯 استكشف التحليلات والرؤى الذكية</li>
+                <li> استكشف التحليلات والرؤى الذكية</li>
             </ol>
         </div>
         """, unsafe_allow_html=True)
@@ -449,7 +449,7 @@ elif st.session_state.page == "pricing":
             "popular": True
         },
         {
-            "name": " Enterprise",
+            "name": "🏢 Enterprise",
             "price": "$99",
             "period": "/شهر",
             "features": ["كل مميزات Pro", "تخزين غير محدود", "White-Label كامل", "API Access", "مدير حساب مخصص", "SLA مضمون 99.9%"],
@@ -488,7 +488,7 @@ elif st.session_state.page == "pricing":
             st.button("اشترك الآن", use_container_width=True, type=plan["button_type"], key=f"sub_{i}")
 
 elif st.session_state.page == "data_import":
-    st.markdown("##  استيراد البيانات")
+    st.markdown("## 📥 استيراد البيانات")
     st.markdown("ارفع ملف CSV أو Excel لبدء التحليل")
     
     uploaded_file = st.file_uploader("اختر ملف CSV أو Excel", type=['csv', 'xlsx', 'xls'])
@@ -522,11 +522,11 @@ elif st.session_state.page == "eda":
     else:
         df = st.session_state.df
         
-        # تعريف المتغيرات الأساسية مرة واحدة
+        # تعريف المتغيرات الأساسية
         numeric_cols = df.select_dtypes(include=[np.number]).columns.tolist()
         categorical_cols = df.select_dtypes(include=['object', 'category']).columns.tolist()
         
-        # تعريف DataFrames للتقرير
+        # تعريف DataFrames بشكل صحيح
         dtype_df = pd.DataFrame({
             'العمود': df.columns,
             'النوع': [str(dtype) for dtype in df.dtypes]
@@ -536,14 +536,9 @@ elif st.session_state.page == "eda":
             'العمود': df.columns,
             'النوع': [str(dtype) for dtype in df.dtypes],
             'القيم الفريدة': [df[col].nunique() for col in df.columns],
-            'القيم المفقودة': [df[col].isnull().sum() for col in df.columns],
+            'القيم المفقودة': [int(df[col].isnull().sum()) for col in df.columns],
             'نسبة المفقودين': [f"{(df[col].isnull().sum()/len(df))*100:.2f}%" for col in df.columns]
         })
-        
-        # تعريف مصفوفة الارتباط
-        corr_matrix = None
-        if len(numeric_cols) >= 2:
-            corr_matrix = df[numeric_cols].corr()
         
         # ====== التبويبات الرئيسية ======
         tab1, tab2, tab3, tab4, tab5, tab6 = st.tabs([
@@ -634,18 +629,18 @@ elif st.session_state.page == "eda":
         
         # ====== التبويب 3: الارتباطات ======
         with tab3:
-            st.markdown("### 🔗 تحليل الارتباطات")
+            st.markdown("###  تحليل الارتباطات")
             
-            if corr_matrix is not None:
+            if len(numeric_cols) >= 2:
                 st.markdown("#### مصفوفة الارتباط")
                 
                 corr_method = st.selectbox("طريقة الحساب", 
                                          ['pearson', 'spearman', 'kendall'],
                                          key="eda_corr_method")
                 
-                corr_matrix_calc = df[numeric_cols].corr(method=corr_method)
+                corr_matrix = df[numeric_cols].corr(method=corr_method)
                 
-                fig_heatmap = px.imshow(corr_matrix_calc,
+                fig_heatmap = px.imshow(corr_matrix,
                                        text_auto=".2f",
                                        aspect="auto",
                                        title="مصفوفة الارتباط",
@@ -658,12 +653,12 @@ elif st.session_state.page == "eda":
                 st.markdown("#### أقوى الارتباطات")
                 
                 corr_pairs = []
-                for i in range(len(corr_matrix_calc.columns)):
-                    for j in range(i+1, len(corr_matrix_calc.columns)):
+                for i in range(len(corr_matrix.columns)):
+                    for j in range(i+1, len(corr_matrix.columns)):
                         corr_pairs.append({
-                            'المتغير 1': corr_matrix_calc.columns[i],
-                            'المتغير 2': corr_matrix_calc.columns[j],
-                            'الارتباط': corr_matrix_calc.iloc[i, j]
+                            'المتغير 1': corr_matrix.columns[i],
+                            'المتغير 2': corr_matrix.columns[j],
+                            'الارتباط': float(corr_matrix.iloc[i, j])
                         })
                 
                 corr_df = pd.DataFrame(corr_pairs)
@@ -722,9 +717,9 @@ elif st.session_state.page == "eda":
                 st.markdown("---")
                 st.markdown("#### جدول التكرارات")
                 freq_df = pd.DataFrame({
-                    'القيمة': value_counts.index,
+                    'القيمة': value_counts.index.tolist(),
                     'التكرار': value_counts.values,
-                    'النسبة': (value_counts.values / len(df) * 100).round(2)
+                    'النسبة': [(v / len(df) * 100) for v in value_counts.values]
                 })
                 st.dataframe(freq_df, use_container_width=True)
             else:
@@ -852,7 +847,8 @@ elif st.session_state.page == "eda":
                         df.describe().to_excel(writer, sheet_name='Descriptive Stats')
                         dtype_df.to_excel(writer, sheet_name='Data Types', index=False)
                         info_df.to_excel(writer, sheet_name='Column Info', index=False)
-                        if corr_matrix is not None:
+                        if len(numeric_cols) >= 2:
+                            corr_matrix = df[numeric_cols].corr()
                             corr_matrix.to_excel(writer, sheet_name='Correlation Matrix')
                     
                     st.download_button(
@@ -889,7 +885,7 @@ elif st.session_state.page == "predictive":
     st.markdown("## 🔮 التحليل التنبؤي")
     
     if st.session_state.df is None:
-        st.warning("⚠️ ارفع بيانات أولاً")
+        st.warning("️ ارفع بيانات أولاً")
     else:
         numeric_cols = st.session_state.df.select_dtypes(include=[np.number]).columns.tolist()
         if len(numeric_cols) >= 2:
@@ -915,7 +911,7 @@ elif st.session_state.page == "prescriptive":
     else:
         insights = generate_local_ai_insights(st.session_state.df)
         for insight in insights:
-            if "️" in insight:
+            if "⚠️" in insight:
                 st.warning(insight)
             elif "🔗" in insight:
                 st.info(insight)
@@ -945,12 +941,12 @@ elif st.session_state.page == "export":
     st.markdown("## 💾 التصدير")
     
     if st.session_state.df is None:
-        st.warning("⚠️ ارفع بيانات أولاً")
+        st.warning("️ ارفع بيانات أولاً")
     else:
         col1, col2 = st.columns(2)
         with col1:
             csv = st.session_state.df.to_csv(index=False).encode('utf-8-sig')
-            st.download_button("📥 CSV", csv, "data.csv", "text/csv", key="dl_csv")
+            st.download_button(" CSV", csv, "data.csv", "text/csv", key="dl_csv")
         with col2:
             output = io.BytesIO()
             with pd.ExcelWriter(output, engine='xlsxwriter') as writer:
