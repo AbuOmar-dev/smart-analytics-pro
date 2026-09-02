@@ -13,7 +13,12 @@ from supabase import create_client, Client
 import config
 
 # ==================== إعدادات الصفحة ====================
-st.set_page_config(page_title="Smart Analytics Pro", page_icon="📊", layout="wide", initial_sidebar_state="expanded")
+st.set_page_config(
+    page_title="Smart Analytics Pro",
+    page_icon="📊",
+    layout="wide",
+    initial_sidebar_state="expanded"
+)
 
 # ==================== CSS Styling ====================
 st.markdown("""
@@ -93,8 +98,8 @@ if not st.session_state.logged_in:
                 else:
                     success, message = register_user(new_username, new_password, new_name, new_email)
                     if success: st.success(f"✅ {message}"); st.balloons(); st.session_state.show_register = False; st.rerun()
-                    else: st.error(f"❌ {message}")
-            if st.button("🔐 لديك حساب؟ دخول", use_container_width=True, type="secondary", key="btn_go_login"): st.session_state.show_register = False; st.rerun()
+                    else: st.error(f" {message}")
+            if st.button(" لديك حساب؟ دخول", use_container_width=True, type="secondary", key="btn_go_login"): st.session_state.show_register = False; st.rerun()
     else:
         st.markdown("### 🔐 تسجيل الدخول")
         col1, col2, col3 = st.columns([1, 2, 1])
@@ -131,7 +136,7 @@ with st.sidebar:
         </div>""", unsafe_allow_html=True)
     st.markdown("---")
     st.markdown("### 📍 التنقل السريع")
-    menu = {"home": "🏠 الرئيسية", "pricing": "💰 الأسعار", "data_import": "📥 استيراد البيانات", "readiness": "✅ جاهزية البيانات", "cleaning": "🧹 تنظيف البيانات", "summary": "📋 ملخص البيانات", "eda": "📊 التحليل الاستكشافي", "diagnostic": "🔍 التحليل التشخيصي", "predictive": "🔮 التحليل التنبؤي", "prescriptive": "💡 التحليل الإرشادي", "ai_chat": "🤖 المساعد الذكي", "export": "💾 التصدير"}
+    menu = {"home": " الرئيسية", "pricing": "💰 الأسعار", "data_import": "📥 استيراد البيانات", "readiness": "✅ جاهزية البيانات", "cleaning": "🧹 تنظيف البيانات", "summary": "📋 ملخص البيانات", "eda": "📊 التحليل الاستكشافي", "diagnostic": "🔍 التحليل التشخيصي", "predictive": "🔮 التحليل التنبؤي", "prescriptive": "💡 التحليل الإرشادي", "ai_chat": "🤖 المساعد الذكي", "export": "💾 التصدير"}
     for key, label in menu.items():
         if st.button(label, use_container_width=True, key=f"nav_{key}"): st.session_state.page = key; st.rerun()
     st.markdown("---")
@@ -159,7 +164,7 @@ elif st.session_state.page == "pricing":
     for i, plan in enumerate(plans):
         with [col1, col2, col3][i]:
             if plan.get("popular"):
-                st.markdown(f"""<div style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; padding: 30px; border-radius: 20px; margin-bottom: 20px; box-shadow: 0 15px 40px rgba(102, 126, 234, 0.4);"><div style="text-align: center; background: rgba(255,255,255,0.2); padding: 8px; border-radius: 8px; margin-bottom: 15px;">🌟 الأكثر شعبية</div><h2 style="color: white; text-align: center;">{plan['name']}</h2><h1 style="color: white; text-align: center;">{plan['price']}<span style="font-size: 18px;">{plan['period']}</span></h1></div>""", unsafe_allow_html=True)
+                st.markdown(f"""<div style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; padding: 30px; border-radius: 20px; margin-bottom: 20px; box-shadow: 0 15px 40px rgba(102, 126, 234, 0.4);"><div style="text-align: center; background: rgba(255,255,255,0.2); padding: 8px; border-radius: 8px; margin-bottom: 15px;"> الأكثر شعبية</div><h2 style="color: white; text-align: center;">{plan['name']}</h2><h1 style="color: white; text-align: center;">{plan['price']}<span style="font-size: 18px;">{plan['period']}</span></h1></div>""", unsafe_allow_html=True)
             else:
                 st.markdown(f"""<div style="background: white; padding: 30px; border-radius: 20px; margin-bottom: 20px; box-shadow: 0 10px 30px rgba(0,0,0,0.1);"><h2 style="text-align: center;">{plan['name']}</h2><h1 style="text-align: center;">{plan['price']}<span style="font-size: 18px;">{plan['period']}</span></h1></div>""", unsafe_allow_html=True)
             st.markdown("### المميزات:"); 
@@ -170,122 +175,41 @@ elif st.session_state.page == "data_import":
     st.markdown("## 📥 استيراد البيانات")
     uploaded_file = st.file_uploader("اختر ملف CSV أو Excel", type=['csv', 'xlsx', 'xls'])
     if uploaded_file:
-        df = load_data(uploaded_file)
-        if df is not None:
+        try:
+            if uploaded_file.name.endswith('.csv'): df = pd.read_csv(uploaded_file)
+            else: df = pd.read_excel(uploaded_file)
             st.session_state.df = df; st.session_state.df_clean = None
-            st.success(f"✅ تم الرفع بنجاح! {len(df)} صف")
-            col1, col2, col3, col4 = st.columns(4)
-            with col1: st.metric("عدد الصفوف", f"{len(df):,}")
-            with col2: st.metric("عدد الأعمدة", len(df.columns))
-            with col3: st.metric("حجم الملف", f"{uploaded_file.size / 1024:.2f} KB")
-            with col4: st.metric("الأعمدة الرقمية", df.select_dtypes(include=[np.number]).shape[1])
-            st.markdown("### معاينة البيانات"); st.dataframe(df.head(10), use_container_width=True)
+            st.success(f"✅ تم الرفع! {len(df)} صف، {len(df.columns)} عمود")
+            st.dataframe(df.head())
+        except Exception as e: st.error(f"خطأ: {e}")
 
 elif st.session_state.page == "readiness":
-    st.markdown("## ✅ فحص جاهزية البيانات للتحليل"); st.markdown("---")
-    if st.session_state.df is None: st.warning("⚠️ يرجى رفع البيانات أولاً")
-    else:
-        df = st.session_state.df
-        total_rows, total_cols = len(df), len(df.columns)
-        missing_values = int(df.isnull().sum().sum())
-        missing_pct = (missing_values / (total_rows * total_cols)) * 100 if (total_rows * total_cols) > 0 else 0
-        duplicates = int(df.duplicated().sum())
-        dup_pct = (duplicates / total_rows) * 100 if total_rows > 0 else 0
-        numeric_cols = df.select_dtypes(include=[np.number]).columns.tolist()
-        categorical_cols = df.select_dtypes(include=['object', 'category']).columns.tolist()
-        
-        outlier_count = 0
-        for col in numeric_cols:
-            Q1, Q3 = df[col].quantile(0.25), df[col].quantile(0.75)
-            IQR = Q3 - Q1
-            outlier_count += int(((df[col] < (Q1 - 1.5 * IQR)) | (df[col] > (Q3 + 1.5 * IQR))).sum())
-        
-        score = max(0, min(100, 100 - (missing_pct * 2) - (dup_pct * 3) - min((outlier_count / total_rows * 100) if total_rows>0 else 0, 20)))
-        issues = []
-        if missing_pct > 0: issues.append(f"⚠️ قيم مفقودة: {missing_values} ({missing_pct:.1f}%)")
-        if dup_pct > 0: issues.append(f"⚠️ تكرارات: {duplicates} ({dup_pct:.1f}%)")
-        if outlier_count > 0: issues.append(f"⚠️ قيم متطرفة: {outlier_count}")
-        
-        col1, col2, col3 = st.columns(3)
-        with col1:
-            score_class = "score-good" if score >= 80 else ("score-warning" if score >= 50 else "score-bad")
-            status = "✅ جاهزة للتحليل" if score >= 80 else ("⚠️ تحتاج تنظيف بسيط" if score >= 50 else "❌ تحتاج تنظيف شامل")
-            st.markdown(f"""<div class="readiness-box" style="text-align: center;"><div style="font-size: 18px; color: #718096; margin-bottom: 10px;">جاهزية البيانات</div><div class="{score_class}">{score:.0f}%</div><div style="margin-top: 10px; font-size: 16px;">{status}</div></div>""", unsafe_allow_html=True)
-        with col2: st.markdown(f"""<div class="readiness-box"><div style="font-size: 14px; color: #718096;">حجم البيانات</div><div style="font-size: 20px; font-weight: bold; margin-top: 5px;">{total_rows:,} صف × {total_cols} عمود</div></div>""", unsafe_allow_html=True)
-        with col3: st.markdown(f"""<div class="readiness-box"><div style="font-size: 14px; color: #718096;">أنواع الأعمدة</div><div style="font-size: 16px; margin-top: 5px;">📊 رقمية: {len(numeric_cols)}</div><div style="font-size: 16px;">📝 نصية: {len(categorical_cols)}</div></div>""", unsafe_allow_html=True)
-        
-        st.markdown("---"); st.markdown("### 🔍 التشخيص التفصيلي لكل عمود")
-        readiness_data = [{'العمود': col, 'النوع': str(df[col].dtype), 'القيم المفقودة': int(df[col].isnull().sum()), 'نسبة المفقود': f"{(df[col].isnull().sum()/total_rows)*100:.1f}%" if total_rows>0 else "0%", 'القيم الفريدة': int(df[col].nunique()), 'الحالة': "✅" if df[col].isnull().sum()==0 else ("⚠️" if (df[col].isnull().sum()/total_rows)*100 < 5 else "❌")} for col in df.columns]
-        st.dataframe(pd.DataFrame(readiness_data), use_container_width=True)
-        
-        if issues:
-            st.markdown("---"); st.markdown("### ⚠️ المشاكل المكتشفة")
-            for issue in issues: st.warning(issue)
-            if st.button("🧹 انتقل إلى تنظيف البيانات", type="primary", key="btn_go_clean"): st.session_state.page = "cleaning"; st.rerun()
-        else:
-            st.success("🎉 البيانات جاهزة تماماً للتحليل!")
-            if st.button("📊 انتقل إلى التحليل الاستكشافي", type="primary", key="btn_go_eda"): st.session_state.page = "eda"; st.rerun()
+    st.markdown("## ✅ جاهزية البيانات")
+    if st.session_state.df is None: st.warning("ارفع بيانات أولاً"); st.stop()
+    df = st.session_state.df
+    st.metric("الصفوف", len(df)); st.metric("الأعمدة", len(df.columns))
+    st.metric("القيم المفقودة", int(df.isnull().sum().sum()))
+    st.dataframe(pd.DataFrame({'العمود': df.columns, 'النوع': df.dtypes.astype(str), 'المفقودة': df.isnull().sum().values}))
 
 elif st.session_state.page == "cleaning":
-    st.markdown("## 🧹 تنظيف وإعداد البيانات"); st.markdown("---")
-    if st.session_state.df is None: st.warning("⚠️ يرجى رفع البيانات أولاً")
-    else:
+    st.markdown("## 🧹 تنظيف البيانات")
+    if st.session_state.df is None: st.warning("ارفع بيانات أولاً"); st.stop()
+    if st.button("تنظيف تلقائي"):
         df = st.session_state.df.copy()
-        st.markdown("### 📊 حالة البيانات قبل التنظيف")
-        col1, col2, col3 = st.columns(3)
-        with col1: st.metric("الصفوف", len(df))
-        with col2: st.metric("القيم المفقودة", int(df.isnull().sum().sum()))
-        with col3: st.metric("التكرارات", int(df.duplicated().sum()))
-        
-        st.markdown("---"); st.markdown("### 🛠️ خيارات التنظيف")
-        missing_option = st.selectbox("1️⃣ معالجة القيم المفقودة", ["حذف الصفوف التي تحتوي على قيم مفقودة", "تعويض القيم المفقودة بالمتوسط (للأعمدة الرقمية)", "تعويض القيم المفقودة بالوسيط (للأعمدة الرقمية)", "لا تفعل شيئاً"], key="missing_opt")
-        dup_option = st.selectbox("2️⃣ معالجة التكرارات", ["حذف التكرارات (الاحتفاظ بالأول)", "لا تفعل شيئاً"], key="dup_opt")
-        outlier_option = st.selectbox("3️⃣ معالجة القيم المتطرفة", ["لا تفعل شيئاً", "حذف القيم المتطرفة (طريقة IQR)"], key="outlier_opt")
-        
-        if st.button("🧹 تطبيق التنظيف", type="primary", key="btn_apply_clean"):
-            df_clean = df.copy(); steps = []
-            if "حذف الصفوف" in missing_option:
-                before = len(df_clean); df_clean = df_clean.dropna(); steps.append(f"✅ حذف {before - len(df_clean)} صف يحتوي على قيم مفقودة")
-            elif "بالمتوسط" in missing_option:
-                for col in df_clean.select_dtypes(include=[np.number]).columns: df_clean[col] = df_clean[col].fillna(df_clean[col].mean()); steps.append("✅ تعويض القيم المفقودة بالمتوسط")
-            elif "بالوسيط" in missing_option:
-                for col in df_clean.select_dtypes(include=[np.number]).columns: df_clean[col] = df_clean[col].fillna(df_clean[col].median()); steps.append("✅ تعويض القيم المفقودة بالوسيط")
-            
-            if "الاحتفاظ بالأول" in dup_option:
-                before = len(df_clean); df_clean = df_clean.drop_duplicates(keep='first'); steps.append(f"✅ حذف {before - len(df_clean)} صف مكرر")
-            
-            if "حذف القيم المتطرفة" in outlier_option:
-                removed = 0
-                for col in df_clean.select_dtypes(include=[np.number]).columns:
-                    Q1, Q3 = df_clean[col].quantile(0.25), df_clean[col].quantile(0.75)
-                    IQR = Q3 - Q1
-                    before_len = len(df_clean)
-                    df_clean = df_clean[(df_clean[col] >= (Q1 - 1.5 * IQR)) & (df_clean[col] <= (Q3 + 1.5 * IQR))]
-                    removed += before_len - len(df_clean)
-                if removed > 0: steps.append(f"✅ حذف {removed} قيمة متطرفة")
-            
-            st.session_state.df_clean = df_clean
-            st.markdown("---"); st.markdown("### ✅ خطوات التنظيف المنفذة")
-            for step in steps: st.success(step)
-            if st.button("📋 عرض ملخص البيانات", type="primary", key="btn_go_summary"): st.session_state.page = "summary"; st.rerun()
+        df = df.dropna()
+        df = df.drop_duplicates()
+        st.session_state.df_clean = df
+        st.success(f"✅ تم التنظيف! {len(df)} صف متبقي")
 
 elif st.session_state.page == "summary":
-    st.markdown("## 📋 ملخص البيانات الجاهزة للتحليل"); st.markdown("---")
+    st.markdown("## 📋 ملخص البيانات")
     df = st.session_state.df_clean if st.session_state.df_clean is not None else st.session_state.df
-    if df is None: st.warning("⚠️ لا توجد بيانات")
-    else:
-        st.success("✅ البيانات جاهزة للتحليل")
-        col1, col2, col3, col4 = st.columns(4)
-        with col1: st.metric("إجمالي الصفوف", f"{len(df):,}")
-        with col2: st.metric("إجمالي الأعمدة", len(df.columns))
-        with col3: st.metric("القيم المفقودة", f"{int(df.isnull().sum().sum()):,}")
-        with col4: st.metric("التكرارات", f"{int(df.duplicated().sum()):,}")
-        st.markdown("---"); st.markdown("### 👁️ معاينة البيانات (أول 10 صفوف)"); st.dataframe(df.head(10), use_container_width=True)
-        st.markdown("---")
-        if st.button("📊 الانتقال إلى التحليل الاستكشافي", type="primary", key="btn_go_eda_from_summary"): st.session_state.page = "eda"; st.rerun()
+    if df is None: st.warning("ارفع بيانات أولاً"); st.stop()
+    st.metric("الصفوف", len(df)); st.metric("الأعمدة", len(df.columns))
+    st.dataframe(df.head(10))
 
 # ==============================================================================
-# ==================== صفحة التحليل الاستكشافي (EDA) ===========================
+# ==================== صفحة EDA (الكود الاحترافي الكامل) =======================
 # ==============================================================================
 elif st.session_state.page == "eda":
     st.markdown("## 📊 التحليل الاستكشافي المتقدم (EDA)")
@@ -294,334 +218,203 @@ elif st.session_state.page == "eda":
     
     if df is None:
         st.warning("⚠️ يرجى رفع البيانات أولاً")
-    else:
-        numeric_cols = df.select_dtypes(include=[np.number]).columns.tolist()
-        
-        # الفلتر الذكي الصارم
-        bad_keywords = ['sku', 'id', 'code', 'date', 'time', 'timestamp', 'رقم', 'كود', 'تاريخ', 'lastrestock']
-        valid_categorical = []
-        for col in df.select_dtypes(include=['object', 'category']).columns:
-            n_unique = df[col].nunique()
-            if any(kw in col.lower() for kw in bad_keywords) or (n_unique > len(df) * 0.5):
-                continue
-            valid_categorical.append(col)
-        
-        st.markdown("### 📥 تصدير التقارير")
-        if st.button("📥 تصدير تقرير EDA شامل واحترافي (HTML)", type="primary", key="btn_export_comprehensive_eda"):
-            with st.spinner("جاري إنشاء التقرير الشامل... يرجى الانتظار"):
-                try:
-                    # دالة بناء جدول HTML نقي 100%
-                    def build_html_table(dataframe):
-                        html = '<table class="data-table"><thead><tr>'
-                        for c in dataframe.columns:
-                            html += f'<th>{str(c)}</th>'
-                        html += '</tr></thead><tbody>'
-                        for _, row in dataframe.iterrows():
-                            html += '<tr>'
-                            for val in row:
-                                val_str = str(val) if pd.notna(val) else ''
-                                html += f'<td>{val_str}</td>'
-                            html += '</tr>'
-                        html += '</tbody></table>'
-                        return html
-
-                    html_parts = []
-                    html_parts.append(f"""<!DOCTYPE html>
+        st.stop()
+    
+    # ==================== اكتشاف ديناميكي للأعمدة ====================
+    numeric_cols = df.select_dtypes(include=[np.number]).columns.tolist()
+    
+    # فلترة ذكية صارمة للأعمدة الفئوية
+    bad_keywords = ['id', 'date', 'time', 'sku', 'code', 'رقم', 'تاريخ', 'كود', 'lastrestock']
+    valid_categorical = []
+    for col in df.select_dtypes(include=['object', 'category']).columns:
+        if any(kw in col.lower() for kw in bad_keywords):
+            continue
+        n_unique = df[col].nunique()
+        if n_unique > len(df) * 0.5:
+            continue
+        valid_categorical.append(col)
+    
+    st.markdown("### 📥 تصدير التقارير")
+    if st.button("📥 تصدير تقرير EDA شامل واحترافي (HTML)", type="primary", key="btn_export_eda"):
+        with st.spinner("جاري إنشاء التقرير الشامل... يرجى الانتظار"):
+            try:
+                # ==================== دالة بناء جدول HTML يدوي 100% ====================
+                def build_html_table_manual(dataframe, title=""):
+                    """تبني جدول HTML يدوياً بدون استخدام to_html()"""
+                    html = f"<h3 style='color:#667eea; margin-top:25px; margin-bottom:15px; border-right: 4px solid #764ba2; padding-right: 12px;'>{title}</h3>"
+                    html += "<table style='width:100%; border-collapse:collapse; margin:15px 0; box-shadow:0 2px 8px rgba(0,0,0,0.05); border-radius:8px; overflow:hidden;'>"
+                    
+                    # الرأس
+                    html += "<thead><tr style='background:#667eea; color:white;'>"
+                    for c in dataframe.columns:
+                        html += f"<th style='padding:12px; text-align:right; font-weight:600;'>{str(c)}</th>"
+                    html += "</tr></thead>"
+                    
+                    # الجسم
+                    html += "<tbody>"
+                    for idx, row in dataframe.iterrows():
+                        bg = "#f7fafc" if idx % 2 == 0 else "white"
+                        html += f"<tr style='background:{bg};'>"
+                        for val in row:
+                            val_str = str(val) if pd.notna(val) else "-"
+                            html += f"<td style='padding:10px; border-bottom:1px solid #e2e8f0; text-align:right;'>{val_str}</td>"
+                        html += "</tr>"
+                    html += "</tbody></table>"
+                    return html
+                
+                # ==================== بناء التقرير ====================
+                html_parts = []
+                
+                # البداية
+                html_parts.append(f"""<!DOCTYPE html>
 <html dir="rtl" lang="ar">
 <head>
 <meta charset="UTF-8">
 <title>تقرير التحليل الاستكشافي الشامل</title>
+<script src="https://cdn.plot.ly/plotly-2.27.0.min.js"></script>
 <style>
-* {{ box-sizing: border-box; margin: 0; padding: 0; }}
-body {{ font-family: 'Segoe UI', Tahoma, Arial, sans-serif; background: #f5f7fa; color: #2d3748; line-height: 1.6; direction: rtl; text-align: right; }}
-.header {{ background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; padding: 50px 20px; text-align: center; }}
-.header h1 {{ font-size: 36px; margin-bottom: 10px; }}
-.header p {{ opacity: 0.9; font-size: 16px; }}
-.container {{ max-width: 1200px; margin: 40px auto; padding: 0 20px; }}
-.cards {{ display: flex; gap: 20px; margin-bottom: 40px; flex-wrap: wrap; }}
-.card {{ background: white; padding: 25px; border-radius: 12px; box-shadow: 0 4px 15px rgba(0,0,0,0.08); flex: 1; min-width: 200px; text-align: center; border-top: 4px solid #667eea; }}
-.card .label {{ color: #718096; font-size: 14px; margin-bottom: 8px; }}
-.card .value {{ color: #2d3748; font-size: 28px; font-weight: bold; }}
-.section {{ background: white; padding: 35px; border-radius: 12px; box-shadow: 0 4px 15px rgba(0,0,0,0.08); margin-bottom: 30px; }}
-.section h2 {{ color: #764ba2; border-bottom: 3px solid #e2e8f0; padding-bottom: 15px; margin-bottom: 25px; font-size: 24px; }}
-.section h3 {{ color: #667eea; margin-top: 30px; margin-bottom: 15px; border-right: 5px solid #764ba2; padding-right: 15px; font-size: 20px; }}
-table.data-table {{ width: 100%; border-collapse: collapse; margin: 20px 0; font-size: 14px; border-radius: 8px; overflow: hidden; box-shadow: 0 2px 8px rgba(0,0,0,0.05); }}
-table.data-table thead {{ background: #667eea; }}
-table.data-table th {{ color: white; padding: 14px 12px; text-align: right; font-weight: 600; }}
-table.data-table td {{ padding: 12px; border-bottom: 1px solid #e2e8f0; text-align: right; }}
-table.data-table tbody tr:nth-child(even) {{ background: #f7fafc; }}
-table.data-table tbody tr:hover {{ background: #edf2f7; }}
-.chart {{ margin: 25px 0; padding: 20px; background: white; border-radius: 12px; border: 1px solid #e2e8f0; min-height: 400px; }}
-.note {{ background: #fffaf0; border-right: 5px solid #ed8936; padding: 20px; margin: 20px 0; border-radius: 8px; color: #c05621; }}
-.footer {{ text-align: center; padding: 40px; color: #718096; background: white; margin-top: 40px; border-top: 1px solid #e2e8f0; }}
-@media print {{ .header, table.data-table thead {{ -webkit-print-color-adjust: exact; print-color-adjust: exact; }} .section {{ break-inside: avoid; page-break-inside: avoid; }} .chart {{ break-inside: avoid; page-break-inside: avoid; }} table.data-table {{ break-inside: avoid; page-break-inside: avoid; }} }}
+    @import url('https://fonts.googleapis.com/css2?family=Cairo:wght@400;600;700&display=swap');
+    * {{ box-sizing: border-box; margin: 0; padding: 0; }}
+    body {{ font-family: 'Cairo', 'Segoe UI', Tahoma, Arial, sans-serif; background: #f8f9fa; color: #2d3748; line-height: 1.6; direction: rtl; text-align: right; padding: 20px; }}
+    .header {{ background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; padding: 40px 20px; text-align: center; border-radius: 12px; margin-bottom: 30px; }}
+    .header h1 {{ font-size: 32px; margin-bottom: 10px; }}
+    .cards {{ display: flex; gap: 20px; margin-bottom: 30px; flex-wrap: wrap; }}
+    .card {{ background: white; padding: 20px; border-radius: 12px; flex: 1; min-width: 200px; box-shadow: 0 4px 15px rgba(0,0,0,0.08); text-align: center; border-top: 4px solid #667eea; }}
+    .card .label {{ color: #718096; font-size: 14px; margin-bottom: 5px; }}
+    .card .value {{ color: #2d3748; font-size: 28px; font-weight: bold; margin-top: 5px; }}
+    .section {{ background: white; padding: 30px; border-radius: 12px; margin-bottom: 25px; box-shadow: 0 4px 15px rgba(0,0,0,0.08); }}
+    .section h2 {{ color: #764ba2; border-bottom: 3px solid #e2e8f0; padding-bottom: 10px; margin-bottom: 20px; font-size: 22px; }}
+    .chart {{ margin: 20px 0; padding: 15px; background: white; border-radius: 8px; min-height: 350px; border: 1px solid #e2e8f0; }}
+    .note {{ background: #fffaf0; border-right: 5px solid #ed8936; padding: 15px; margin: 20px 0; border-radius: 8px; color: #c05621; font-size: 14px; }}
+    .footer {{ text-align: center; padding: 30px; color: #718096; background: white; margin-top: 30px; border-top: 1px solid #e2e8f0; border-radius: 12px; }}
+    @media print {{
+        .section, .chart {{ break-inside: avoid; page-break-inside: avoid; }}
+        th {{ -webkit-print-color-adjust: exact; print-color-adjust: exact; }}
+    }}
 </style>
 </head>
 <body>
 <div class="header">
-<h1>📊 تقرير التحليل الاستكشافي الشامل</h1>
-<p>Smart Analytics Pro - {datetime.now().strftime('%Y-%m-%d %H:%M')}</p>
+    <h1>📊 تقرير التحليل الاستكشافي الشامل</h1>
+    <p>Smart Analytics Pro - {datetime.now().strftime('%Y-%m-%d %H:%M')}</p>
 </div>
-<div class="container">
 <div class="cards">
-<div class="card"><div class="label">إجمالي السجلات</div><div class="value">{len(df):,}</div></div>
-<div class="card"><div class="label">إجمالي الأعمدة</div><div class="value">{len(df.columns)}</div></div>
-<div class="card"><div class="label">الأعمدة الرقمية</div><div class="value">{len(numeric_cols)}</div></div>
-<div class="card"><div class="label">الأعمدة الفئوية الصالحة</div><div class="value">{len(valid_categorical)}</div></div>
+    <div class="card"><div class="label">إجمالي السجلات</div><div class="value">{len(df):,}</div></div>
+    <div class="card"><div class="label">الأعمدة</div><div class="value">{len(df.columns)}</div></div>
+    <div class="card"><div class="label">الرقمية</div><div class="value">{len(numeric_cols)}</div></div>
+    <div class="card"><div class="label">الفئوية</div><div class="value">{len(valid_categorical)}</div></div>
 </div>""")
+                
+                # 1. الجداول التكرارية
+                html_parts.append("<div class='section'><h2>📋 1. الجداول التكرارية (أعلى 15 قيمة)</h2>")
+                html_parts.append("<p style='color:#718096; margin-bottom:15px; font-size:14px;'>تم استبعاد الأعمدة الفريدة والتواريخ تلقائياً.</p>")
+                
+                for col in valid_categorical[:5]:  # أول 5 أعمدة فقط
+                    freq = df[col].value_counts().head(15).reset_index()
+                    freq.columns = ['القيمة', 'التكرار']
+                    freq['النسبة %'] = (freq['التكرار'] / len(df) * 100).round(1)
                     
-                    # 1. الجداول التكرارية
-                    html_parts.append("""<div class="section">
-<h2>📋 1. الجداول التكرارية (أعلى 15 قيمة)</h2>
-<p style="color:#718096; margin-bottom:20px;">تم استبعاد المعرفات الفريدة وأعمدة التواريخ تلقائياً.</p>""")
+                    html_parts.append(build_html_table_manual(freq, f"📊 {col}"))
                     
-                    for col in valid_categorical:
-                        freq = df[col].value_counts().head(15).reset_index()
-                        freq.columns = ['القيمة', 'التكرار']
-                        freq['النسبة %'] = (freq['التكرار'] / len(df) * 100).round(2)
-                        
-                        html_parts.append(f"<h3>📊 {col}</h3>")
-                        html_parts.append(build_html_table(freq))
-                        
-                        fig = px.bar(freq, x='القيمة', y='التكرار', title=f"توزيع {col}", color='التكرار', color_continuous_scale='Blues')
-                        fig.update_layout(height=350, xaxis_tickangle=-45)
-                        html_parts.append('<div class="chart">')
-                        # تضمين Plotly JS بالكامل لضمان العمل بدون إنترنت
-                        html_parts.append(fig.to_html(full_html=False, include_plotlyjs=True))
-                        html_parts.append('</div>')
+                    # رسم بياني
+                    fig = px.bar(freq, x='القيمة', y='التكرار', title=f"توزيع {col}", color='التكرار', color_continuous_scale='Blues')
+                    fig.update_layout(height=300, xaxis_tickangle=-45)
+                    html_parts.append('<div class="chart">')
+                    html_parts.append(fig.to_html(full_html=False, include_plotlyjs=True))
+                    html_parts.append('</div>')
+                
+                # ملاحظة الأعمدة المستبعدة
+                skipped = [c for c in df.select_dtypes(include=['object', 'category']).columns if c not in valid_categorical]
+                if skipped:
+                    html_parts.append(f'<div class="note">️ <strong>ملاحظة:</strong> تم استبعاد: <strong>{", ".join(skipped)}</strong></div>')
+                html_parts.append("</div>")
+                
+                # 2. الإحصائيات
+                html_parts.append("<div class='section'><h2>📈 2. المقاييس الإحصائية</h2>")
+                
+                for col in numeric_cols:
+                    cd = df[col].dropna()
+                    if len(cd) == 0: continue
                     
-                    skipped = [c for c in df.select_dtypes(include=['object', 'category']).columns if c not in valid_categorical]
-                    if skipped:
-                        html_parts.append(f'<div class="note">ℹ️ <strong>ملاحظة:</strong> تم استبعاد: <strong>{", ".join(skipped)}</strong></div>')
-                    html_parts.append("</div>")
+                    stats_df = pd.DataFrame({
+                        'المقياس': ['المتوسط', 'الوسيط', 'الانحراف المعياري', 'التباين', 'الحد الأدنى', 'Q1', 'Q2', 'Q3', 'الحد الأقصى', 'IQR'],
+                        'القيمة': [f"{cd.mean():.2f}", f"{cd.median():.2f}", f"{cd.std():.2f}", f"{cd.var():.2f}", 
+                                  f"{cd.min():.2f}", f"{cd.quantile(0.25):.2f}", f"{cd.quantile(0.5):.2f}", 
+                                  f"{cd.quantile(0.75):.2f}", f"{cd.max():.2f}", f"{(cd.quantile(0.75)-cd.quantile(0.25)):.2f}"]
+                    })
                     
-                    # 2. المقاييس الإحصائية
-                    html_parts.append("""<div class="section">
-<h2>📈 2. المقاييس الإحصائية الشاملة</h2>""")
+                    html_parts.append(build_html_table_manual(stats_df, f"📊 {col}"))
                     
-                    for col in numeric_cols:
-                        cd = df[col].dropna()
-                        if len(cd) == 0: continue
-                        
-                        m, med, s = cd.mean(), cd.median(), cd.std()
-                        v = cd.var()
-                        min_v, max_v = cd.min(), cd.max()
-                        q1, q2, q3 = cd.quantile(0.25), cd.quantile(0.50), cd.quantile(0.75)
-                        iqr = q3 - q1
-                        sk, ku = cd.skew(), cd.kurtosis()
-                        
-                        sk_i = "متماثل" if abs(sk) < 0.5 else ("منحرف لليمين" if sk > 0 else "منحرف لليسار")
-                        ku_i = "مدبب" if ku > 0 else "مفلطح"
-                        
-                        html_parts.append(f"<h3>📊 {col}</h3>")
-                        
-                        stats_df = pd.DataFrame({
-                            'المقياس': ['المتوسط', 'الوسيط', 'الانحراف المعياري', 'التباين', 'الحد الأدنى', 'Q1', 'Q2', 'Q3', 'الحد الأقصى', 'IQR'],
-                            'القيمة': [f"{m:.2f}", f"{med:.2f}", f"{s:.2f}", f"{v:.2f}", f"{min_v:.2f}", f"{q1:.2f}", f"{q2:.2f}", f"{q3:.2f}", f"{max_v:.2f}", f"{iqr:.2f}"]
-                        })
-                        html_parts.append(build_html_table(stats_df))
-                        
-                        skew_df = pd.DataFrame({
-                            'المقياس': ['الانحناء (Skewness)', 'التفلطح (Kurtosis)'],
-                            'القيمة': [f"{sk:.2f}", f"{ku:.2f}"],
-                            'التفسير': [sk_i, ku_i]
-                        })
-                        html_parts.append(build_html_table(skew_df))
-                        
-                        fig = px.histogram(df, x=col, nbins=30, title=f"توزيع {col}", color_discrete_sequence=['#667eea'])
-                        fig.add_vline(x=m, line_dash="dash", line_color="red", annotation_text=f"Mean: {m:.1f}")
-                        fig.update_layout(height=350)
-                        html_parts.append('<div class="chart">')
-                        html_parts.append(fig.to_html(full_html=False, include_plotlyjs=True))
-                        html_parts.append('</div>')
-                    html_parts.append("</div>")
+                    # رسم
+                    fig = px.histogram(df, x=col, nbins=30, title=f"توزيع {col}", color_discrete_sequence=['#667eea'])
+                    fig.add_vline(x=cd.mean(), line_dash="dash", line_color="red", annotation_text="Mean")
+                    fig.update_layout(height=300)
+                    html_parts.append('<div class="chart">')
+                    html_parts.append(fig.to_html(full_html=False, include_plotlyjs=True))
+                    html_parts.append('</div>')
+                html_parts.append("</div>")
+                
+                # 3. Box Plots
+                html_parts.append("<div class='section'><h2> 3. مخططات الصندوق</h2>")
+                for col in numeric_cols:
+                    q1, q2, q3 = df[col].quantile(0.25), df[col].quantile(0.5), df[col].quantile(0.75)
+                    iqr = q3 - q1
+                    outliers = len(df[(df[col] < q1-1.5*iqr) | (df[col] > q3+1.5*iqr)])
                     
-                    # 3. Box Plots
-                    html_parts.append("""<div class="section">
-<h2>📦 3. مخططات الصندوق (Box Plots)</h2>""")
+                    box_df = pd.DataFrame({
+                        'المقياس': ['Min', 'Q1', 'Median', 'Q3', 'Max', 'IQR', 'Outliers'],
+                        'القيمة': [f"{df[col].min():.2f}", f"{q1:.2f}", f"{q2:.2f}", f"{q3:.2f}", f"{df[col].max():.2f}", f"{iqr:.2f}", str(outliers)]
+                    })
                     
-                    for col in numeric_cols:
-                        q1, q2, q3 = df[col].quantile(0.25), df[col].quantile(0.50), df[col].quantile(0.75)
-                        iqr = q3 - q1
-                        outliers = len(df[(df[col] < q1 - 1.5*iqr) | (df[col] > q3 + 1.5*iqr)])
-                        
-                        html_parts.append(f"<h3>📦 {col}</h3>")
-                        
-                        box_df = pd.DataFrame({
-                            'المقياس': ['Min', 'Q1', 'Median', 'Q3', 'Max', 'IQR', 'Outliers'],
-                            'القيمة': [f"{df[col].min():.2f}", f"{q1:.2f}", f"{q2:.2f}", f"{q3:.2f}", f"{df[col].max():.2f}", f"{iqr:.2f}", str(outliers)]
-                        })
-                        html_parts.append(build_html_table(box_df))
-                        
-                        fig = px.box(df, y=col, title=f"Box Plot - {col}", color_discrete_sequence=['#667eea'])
-                        fig.update_layout(height=350)
-                        html_parts.append('<div class="chart">')
-                        html_parts.append(fig.to_html(full_html=False, include_plotlyjs=True))
-                        html_parts.append('</div>')
-                    html_parts.append("</div>")
+                    html_parts.append(build_html_table_manual(box_df, f"📦 {col}"))
                     
-                    html_parts.append("""<div class="footer">
+                    fig = px.box(df, y=col, title=f"Box Plot - {col}", color_discrete_sequence=['#667eea'])
+                    fig.update_layout(height=300)
+                    html_parts.append('<div class="chart">')
+                    html_parts.append(fig.to_html(full_html=False, include_plotlyjs=True))
+                    html_parts.append('</div>')
+                html_parts.append("</div>")
+                
+                html_parts.append("""<div class="footer">
 <p>تم إنشاء هذا التقرير بواسطة <b>Smart Analytics Pro</b></p>
 <p>© 2026 جميع الحقوق محفوظة</p>
-</div>
-</div>
-</body>
-</html>""")
-                    
-                    final_html = "".join(html_parts)
-                    
-                    st.download_button(
-                        label="📥 تحميل التقرير",
-                        data=final_html,
-                        file_name=f"EDA_Report_{datetime.now().strftime('%Y%m%d_%H%M%S')}.html",
-                        mime="text/html"
-                    )
-                    st.success("✅ تم إنشاء التقرير!")
-                    
-                except Exception as e:
-                    st.error(f"❌ خطأ: {str(e)}")
-                    st.exception(e)
-        
-        st.markdown("---")
-        
-        tab1, tab2, tab3, tab4 = st.tabs(["📋 الجداول", "📈 التصور", "📊 الإحصائيات", "📦 Box Plots"])
-        
-        with tab1:
-            if valid_categorical:
-                sel_cat = st.selectbox("اختر المتغير الفئوي", valid_categorical, key="ui_tab1_cat")
-                freq = df[sel_cat].value_counts().head(20).reset_index()
-                freq.columns = ['القيمة', 'التكرار']
-                st.dataframe(freq, use_container_width=True)
-                fig = px.bar(freq, x='القيمة', y='التكرار', title=f"أعلى 20 قيمة لـ {sel_cat}", color='التكرار', color_continuous_scale='Blues')
-                fig.update_layout(title={'x': 0, 'xanchor': 'right'})
-                st.plotly_chart(fig, use_container_width=True, key="plot_tab1")
-            else:
-                st.info("لا توجد متغيرات فئوية")
-        
-        with tab2:
-            viz_type = st.selectbox("اختر نوع التصور", ["Histogram", "Bar Chart", "Heatmap"], key="ui_tab2_viz")
-            if viz_type == "Histogram" and numeric_cols:
-                sel_num = st.selectbox("اختر العمود", numeric_cols, key="ui_tab2_hist")
-                fig = px.histogram(df, x=sel_num, nbins=30, title=f"توزيع {sel_num}", color_discrete_sequence=['#667eea'])
-                fig.update_layout(title={'x': 0, 'xanchor': 'right'})
-                st.plotly_chart(fig, use_container_width=True, key="plot_tab2_hist")
-            elif viz_type == "Bar Chart" and valid_categorical:
-                sel_cat2 = st.selectbox("اختر العمود", valid_categorical, key="ui_tab2_bar")
-                vc = df[sel_cat2].value_counts().head(15)
-                fig = px.bar(x=vc.values, y=vc.index, orientation='h', title=f"توزيع {sel_cat2}", color=vc.values, color_continuous_scale='Blues')
-                fig.update_layout(title={'x': 0, 'xanchor': 'right'})
-                st.plotly_chart(fig, use_container_width=True, key="plot_tab2_bar")
-            elif viz_type == "Heatmap" and len(numeric_cols) >= 2:
-                fig = px.imshow(df[numeric_cols].corr(), text_auto=".2f", aspect="auto", title="مصفوفة الارتباط", color_continuous_scale="RdBu_r", zmin=-1, zmax=1)
-                fig.update_layout(height=600, title={'x': 0, 'xanchor': 'right'})
-                st.plotly_chart(fig, use_container_width=True, key="plot_tab2_heat")
-        
-        with tab3:
-            if numeric_cols:
-                sel_stat = st.selectbox("اختر العمود الرقمي", numeric_cols, key="ui_tab3_stat")
-                cd = df[sel_stat].dropna()
-                c1, c2, c3, c4 = st.columns(4)
-                with c1: st.metric("المتوسط", f"{cd.mean():.2f}")
-                with c2: st.metric("الوسيط", f"{cd.median():.2f}")
-                with c3: st.metric("الانحراف المعياري", f"{cd.std():.2f}")
-                with c4: st.metric("التباين", f"{cd.var():.2f}")
-                st.markdown("---")
-                sk, ku = cd.skew(), cd.kurtosis()
-                sk_i = "متماثل" if abs(sk) < 0.5 else ("منحرف لليمين" if sk > 0 else "منحرف لليسار")
-                ku_i = "مدبب" if ku > 0 else "مفلطح"
-                c1, c2 = st.columns(2)
-                with c1: st.info(f"**الانحناء:** {sk:.4f} - {sk_i}")
-                with c2: st.info(f"**التفلطح:** {ku:.4f} - {ku_i}")
-                fig = px.histogram(df, x=sel_stat, nbins=30, title=f"توزيع {sel_stat}", color_discrete_sequence=['#667eea'])
-                fig.add_vline(x=cd.mean(), line_dash="dash", line_color="red", annotation_text=f"Mean: {cd.mean():.2f}")
-                fig.update_layout(title={'x': 0, 'xanchor': 'right'})
-                st.plotly_chart(fig, use_container_width=True, key="plot_tab3")
-            else:
-                st.info("لا توجد متغيرات رقمية")
+</div></div></body></html>""")
                 
-        with tab4:
-            if numeric_cols:
-                sel_box = st.selectbox("اختر العمود", numeric_cols, key="ui_tab4_box")
-                fig_box = px.box(df, y=sel_box, title=f"Box Plot لـ {sel_box}", color_discrete_sequence=['#667eea'])
-                fig_box.update_layout(title={'x': 0, 'xanchor': 'right'})
-                st.plotly_chart(fig_box, use_container_width=True, key="plot_tab4_single")
-                if len(numeric_cols) <= 10:
-                    st.markdown("#### Box Plot لجميع المتغيرات الرقمية")
-                    df_melted = df[numeric_cols].melt(var_name='المتغير', value_name='القيمة')
-                    fig_box_all = px.box(df_melted, x='المتغير', y='القيمة', title="Box Plot لجميع المتغيرات", color='المتغير')
-                    fig_box_all.update_layout(height=500, title={'x': 0, 'xanchor': 'right'})
-                    st.plotly_chart(fig_box_all, use_container_width=True, key="plot_tab4_all")
-            else:
-                st.info("لا توجد متغيرات رقمية")
+                st.download_button("📥 تحميل التقرير", data="".join(html_parts), 
+                                 file_name=f"EDA_Report_{datetime.now().strftime('%Y%m%d')}.html", mime="text/html")
+                st.success("✅ تم إنشاء التقرير!")
+            except Exception as e:
+                st.error(f"خطأ: {e}")
+                st.exception(e)
+    
+    # عرض تفاعلي
+    st.markdown("---")
+    tab1, tab2 = st.tabs([" الجداول", "📈 الإحصائيات"])
+    with tab1:
+        if valid_categorical:
+            col = st.selectbox("اختر عمود", valid_categorical, key="tab1_col")
+            st.dataframe(df[col].value_counts(), use_container_width=True)
+    with tab2:
+        if numeric_cols:
+            col = st.selectbox("اختر عمود رقمي", numeric_cols, key="tab2_col")
+            st.write(df[col].describe())
 
 elif st.session_state.page == "diagnostic":
     st.markdown("## 🔍 التحليل التشخيصي")
-    df = st.session_state.df_clean if st.session_state.df_clean is not None else st.session_state.df
-    if df is None: st.warning("⚠️ ارفع بيانات أولاً")
-    else:
-        numeric_cols = df.select_dtypes(include=[np.number]).columns.tolist()
-        if numeric_cols:
-            col = st.selectbox("اختر العمود", numeric_cols, key="diag_col")
-            threshold = st.slider("الحد (Z-Score)", 2.0, 4.0, 3.0, key="diag_thresh")
-            if st.button("🔍 تحليل الشذوذ", key="btn_diag"):
-                mean, std = np.mean(df[col]), np.std(df[col])
-                z_scores = np.abs((df[col] - mean) / std)
-                df['Anomaly'] = z_scores > threshold
-                anomalies = df[df['Anomaly']]
-                st.metric("حالات الشذوذ", len(anomalies))
-                if len(anomalies) > 0: st.dataframe(anomalies)
+    if st.session_state.df is None: st.warning("ارفع بيانات أولاً"); st.stop()
+    st.info("سيتم التطوير قريباً")
 
 elif st.session_state.page == "predictive":
     st.markdown("## 🔮 التحليل التنبؤي")
-    df = st.session_state.df_clean if st.session_state.df_clean is not None else st.session_state.df
-    if df is None: st.warning("⚠️ ارفع بيانات أولاً")
-    else:
-        numeric_cols = df.select_dtypes(include=[np.number]).columns.tolist()
-        if len(numeric_cols) >= 2:
-            target = st.selectbox("الهدف", numeric_cols, key="pred_target")
-            feature = st.selectbox("الميزة", [c for c in numeric_cols if c != target], key="pred_feat")
-            if st.button("🚀 تنبؤ", key="btn_pred"):
-                X, y = df[[feature]].values, df[target].values
-                X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2, random_state=42)
-                model = LinearRegression().fit(X_train, y_train)
-                preds = model.predict(X_test)
-                st.metric("R² Score", f"{r2_score(y_test, preds):.3f}")
-                fig = px.scatter(x=y_test, y=preds, labels={'x': 'Actual', 'y': 'Predicted'}, trendline="ols")
-                fig.update_layout(title={'x': 0, 'xanchor': 'right'})
-                st.plotly_chart(fig, use_container_width=True, key="plot_pred")
-
-elif st.session_state.page == "prescriptive":
-    st.markdown("## 💡 التحليل الإرشادي")
-    df = st.session_state.df_clean if st.session_state.df_clean is not None else st.session_state.df
-    if df is None: st.warning("⚠️ ارفع بيانات أولاً")
-    else: st.success("✅ البيانات جاهزة. سيتم إضافة محرك التوصيات الذكي في التحديث القادم.")
-
-elif st.session_state.page == "ai_chat":
-    st.markdown("## 🤖 المساعد الذكي")
-    df = st.session_state.df_clean if st.session_state.df_clean is not None else st.session_state.df
-    if df is None: st.warning("⚠️ ارفع بيانات أولاً")
-    else:
-        prompt = st.text_input("اسأل عن بياناتك (مثال: ما هو متوسط المبيعات؟):", key="chat_q")
-        if prompt:
-            if "عدد" in prompt or "rows" in prompt: st.write(f"📊 عدد الصفوف: {len(df)}")
-            elif "أعمدة" in prompt or "columns" in prompt: st.write(f"📋 الأعمدة: {', '.join(df.columns.tolist())}")
-            elif "متوسط" in prompt:
-                for col in df.select_dtypes(include=[np.number]).columns.tolist()[:3]:
-                    st.write(f"- {col}: {df[col].mean():.2f}")
+    if st.session_state.df is None: st.warning("ارفع بيانات أولاً"); st.stop()
+    st.info("سيتم التطوير قريباً")
 
 elif st.session_state.page == "export":
     st.markdown("## 💾 التصدير")
-    df = st.session_state.df_clean if st.session_state.df_clean is not None else st.session_state.df
-    if df is None: st.warning("⚠️ ارفع بيانات أولاً")
-    else:
-        col1, col2 = st.columns(2)
-        with col1:
-            csv = df.to_csv(index=False).encode('utf-8-sig')
-            st.download_button("📥 CSV", csv, "data.csv", "text/csv", key="dl_csv")
-        with col2:
-            output = io.BytesIO()
-            with pd.ExcelWriter(output, engine='xlsxwriter') as writer: df.to_excel(writer, index=False)
-            st.download_button("📥 Excel", output.getvalue(), "data.xlsx", key="dl_excel")
+    if st.session_state.df is None: st.warning("ارفع بيانات أولاً"); st.stop()
+    df = st.session_state.df_clean if st.session_state.df_clean else st.session_state.df
+    csv = df.to_csv(index=False).encode('utf-8-sig')
+    st.download_button("📥 CSV", csv, "data.csv", "text/csv")
 
 st.markdown("---")
-st.markdown("<div style='text-align: center; color: #718096; padding: 20px;'>Smart Analytics Pro © 2026</div>", unsafe_allow_html=True)
+st.markdown("<div style='text-align:center; color:#718096; padding:20px;'>Smart Analytics Pro © 2026</div>", unsafe_allow_html=True)
