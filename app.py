@@ -675,8 +675,7 @@ elif st.session_state.page == "eda":
             else:
                 st.info("لا توجد متغيرات رقمية")
 
-elif st.session_state.page == "diagnostic":
-                elif st.session_state.page == "diagnostic":
+elif st.session_state.page == "diagnostic":           
     st.markdown("## 🔍 التحليل التشخيصي")
     df = st.session_state.df_clean if st.session_state.df_clean is not None else st.session_state.df
     if df is None: st.warning("⚠️ ارفع بيانات أولاً")
