@@ -250,14 +250,14 @@ with st.sidebar:
     
     menu = {
         "home": "🏠 الرئيسية",
-        "pricing": "💰 الأسعار",
-        "data_import": "📥 استيراد البيانات",
+        "pricing": " الأسعار",
+        "data_import": " استيراد البيانات",
         "readiness": "✅ جاهزية البيانات",
-        "cleaning": " تنظيف البيانات",
-        "summary": " ملخص البيانات",
+        "cleaning": "🧹 تنظيف البيانات",
+        "summary": "📋 ملخص البيانات",
         "eda": "📊 التحليل الاستكشافي",
         "diagnostic": "🔍 التحليل التشخيصي",
-        "predictive": "🔮 التحليل التنبؤي",
+        "predictive": " التحليل التنبؤي",
         "prescriptive": "💡 التحليل الإرشادي",
         "ai_chat": "🤖 المساعد الذكي",
         "export": "💾 التصدير"
@@ -338,10 +338,10 @@ if st.session_state.page == "home":
     if current_user:
         st.markdown(f"""
         <div style="background: linear-gradient(135deg, #f0fff4 0%, #c6f6d5 100%); padding: 20px; border-radius: 12px; margin-top: 40px; border-left: 5px solid #48bb78;">
-            <h3> مرحباً {current_user['name']}!</h3>
+            <h3>👋 مرحباً {current_user['name']}!</h3>
             <p><strong>ابدأ الآن في 4 خطوات:</strong></p>
             <ol>
-                <li> استيراد البيانات</li>
+                <li>📥 استيراد البيانات</li>
                 <li>✅ فحص جاهزية البيانات</li>
                 <li>🧹 تنظيف البيانات (إذا لزم الأمر)</li>
                 <li>📊 التحليل الاستكشافي</li>
@@ -358,7 +358,7 @@ elif st.session_state.page == "pricing":
     
     plans = [
         {
-            "name": " Free",
+            "name": "🆓 Free",
             "price": "$0",
             "period": "/شهر",
             "features": ["3 مشاريع نشطة", "تخزين 100MB", "تحليل استكشافي فقط"],
@@ -413,7 +413,7 @@ elif st.session_state.page == "pricing":
 
 # ===== صفحة استيراد البيانات =====
 elif st.session_state.page == "data_import":
-    st.markdown("##  استيراد البيانات")
+    st.markdown("## 📥 استيراد البيانات")
     st.markdown("ارفع ملف CSV أو Excel لبدء التحليل")
     
     uploaded_file = st.file_uploader("اختر ملف CSV أو Excel", type=['csv', 'xlsx', 'xls'])
@@ -452,21 +452,19 @@ elif st.session_state.page == "readiness":
         
         st.markdown("### 📋 جدول تشخيص حالة البيانات")
         
-        # حساب المؤشرات
         total_rows = len(df)
         total_cols = len(df.columns)
         total_cells = total_rows * total_cols
         
-        missing_values = df.isnull().sum().sum()
+        missing_values = int(df.isnull().sum().sum())
         missing_pct = (missing_values / total_cells) * 100 if total_cells > 0 else 0
         
-        duplicates = df.duplicated().sum()
+        duplicates = int(df.duplicated().sum())
         dup_pct = (duplicates / total_rows) * 100 if total_rows > 0 else 0
         
         numeric_cols = df.select_dtypes(include=[np.number]).columns.tolist()
         categorical_cols = df.select_dtypes(include=['object', 'category']).columns.tolist()
         
-        # حساب القيم المتطرفة
         outlier_count = 0
         for col in numeric_cols:
             Q1 = df[col].quantile(0.25)
@@ -474,9 +472,8 @@ elif st.session_state.page == "readiness":
             IQR = Q3 - Q1
             lower = Q1 - 1.5 * IQR
             upper = Q3 + 1.5 * IQR
-            outlier_count += ((df[col] < lower) | (df[col] > upper)).sum()
+            outlier_count += int(((df[col] < lower) | (df[col] > upper)).sum())
         
-        # حساب Score الجاهزية
         score = 100
         issues = []
         
@@ -486,7 +483,7 @@ elif st.session_state.page == "readiness":
         
         if dup_pct > 0:
             score -= dup_pct * 3
-            issues.append(f"⚠️ تكرارات: {duplicates} ({dup_pct:.1f}%)")
+            issues.append(f"️ تكرارات: {duplicates} ({dup_pct:.1f}%)")
         
         if outlier_count > 0:
             score -= min(outlier_count / total_rows * 100, 20)
@@ -494,7 +491,6 @@ elif st.session_state.page == "readiness":
         
         score = max(0, min(100, score))
         
-        # عرض Score
         col1, col2, col3 = st.columns(3)
         with col1:
             if score >= 80:
@@ -533,7 +529,6 @@ elif st.session_state.page == "readiness":
             </div>
             """, unsafe_allow_html=True)
         
-        # جدول التشخيص التفصيلي
         st.markdown("---")
         st.markdown("### 🔍 التشخيص التفصيلي لكل عمود")
         
@@ -544,13 +539,12 @@ elif st.session_state.page == "readiness":
             unique = int(df[col].nunique())
             dtype = str(df[col].dtype)
             
-            # تحديد الحالة
             if missing_p == 0:
                 status_col = "✅"
             elif missing_p < 5:
                 status_col = "⚠️"
             else:
-                status_col = ""
+                status_col = "❌"
             
             readiness_data.append({
                 'العمود': col,
@@ -564,7 +558,6 @@ elif st.session_state.page == "readiness":
         readiness_df = pd.DataFrame(readiness_data)
         st.dataframe(readiness_df, use_container_width=True)
         
-        # قائمة المشاكل
         if issues:
             st.markdown("---")
             st.markdown("### ️ المشاكل المكتشفة")
@@ -590,11 +583,11 @@ elif st.session_state.page == "cleaning":
     st.markdown("---")
     
     if st.session_state.df is None:
-        st.warning("⚠️ يرجى رفع البيانات أولاً")
+        st.warning("️ يرجى رفع البيانات أولاً")
     else:
         df = st.session_state.df.copy()
         
-        st.markdown("###  حالة البيانات قبل التنظيف")
+        st.markdown("### 📊 حالة البيانات قبل التنظيف")
         col1, col2, col3 = st.columns(3)
         with col1:
             st.metric("الصفوف", len(df))
@@ -606,8 +599,7 @@ elif st.session_state.page == "cleaning":
         st.markdown("---")
         st.markdown("### 🛠️ خيارات التنظيف")
         
-        # خيار 1: القيم المفقودة
-        st.markdown("#### 1️ معالجة القيم المفقودة")
+        st.markdown("#### 1️⃣ معالجة القيم المفقودة")
         missing_option = st.selectbox(
             "اختر طريقة معالجة القيم المفقودة",
             ["حذف الصفوف التي تحتوي على قيم مفقودة",
@@ -619,7 +611,6 @@ elif st.session_state.page == "cleaning":
             key="missing_option"
         )
         
-        # خيار 2: التكرارات
         st.markdown("#### 2️⃣ معالجة التكرارات")
         dup_option = st.selectbox(
             "اختر طريقة معالجة التكرارات",
@@ -629,7 +620,6 @@ elif st.session_state.page == "cleaning":
             key="dup_option"
         )
         
-        # خيار 3: القيم المتطرفة
         st.markdown("#### 3️⃣ معالجة القيم المتطرفة")
         outlier_option = st.selectbox(
             "اختر طريقة معالجة القيم المتطرفة",
@@ -645,7 +635,6 @@ elif st.session_state.page == "cleaning":
             df_clean = df.copy()
             steps = []
             
-            # تطبيق معالجة القيم المفقودة
             if "حذف الصفوف" in missing_option:
                 before = len(df_clean)
                 df_clean = df_clean.dropna()
@@ -668,10 +657,11 @@ elif st.session_state.page == "cleaning":
                 steps.append("✅ تعويض القيم المفقودة بالوسيط للأعمدة الرقمية")
             elif "بالقيمة الأكثر تكراراً" in missing_option:
                 for col in df_clean.columns:
-                    df_clean[col] = df_clean[col].fillna(df_clean[col].mode()[0] if len(df_clean[col].mode()) > 0 else df_clean[col])
+                    mode_val = df_clean[col].mode()
+                    if len(mode_val) > 0:
+                        df_clean[col] = df_clean[col].fillna(mode_val[0])
                 steps.append("✅ تعويض القيم المفقودة بالقيمة الأكثر تكراراً")
             
-            # تطبيق معالجة التكرارات
             if "الاحتفاظ بالأول" in dup_option:
                 before = len(df_clean)
                 df_clean = df_clean.drop_duplicates(keep='first')
@@ -683,7 +673,6 @@ elif st.session_state.page == "cleaning":
                 after = len(df_clean)
                 steps.append(f"✅ حذف {before - after} صف مكرر")
             
-            # تطبيق معالجة القيم المتطرفة
             if "حذف القيم المتطرفة" in outlier_option:
                 numeric_cols_clean = df_clean.select_dtypes(include=[np.number]).columns
                 removed = 0
@@ -711,11 +700,10 @@ elif st.session_state.page == "cleaning":
                     mask_upper = df_clean[col] > upper
                     df_clean.loc[mask_lower, col] = lower
                     df_clean.loc[mask_upper, col] = upper
-                    replaced += mask_lower.sum() + mask_upper.sum()
+                    replaced += int(mask_lower.sum()) + int(mask_upper.sum())
                 if replaced > 0:
                     steps.append(f"✅ استبدال {replaced} قيمة متطرفة بالحدود")
             
-            # حفظ البيانات المنظفة
             st.session_state.df_clean = df_clean
             st.session_state.is_cleaned = True
             
@@ -734,7 +722,7 @@ elif st.session_state.page == "cleaning":
             with col3:
                 st.metric("التكرارات", int(df_clean.duplicated().sum()))
             
-            if st.button(" عرض ملخص البيانات", type="primary", key="btn_go_summary"):
+            if st.button("📋 عرض ملخص البيانات", type="primary", key="btn_go_summary"):
                 st.session_state.page = "summary"
                 st.rerun()
 
@@ -743,7 +731,6 @@ elif st.session_state.page == "summary":
     st.markdown("## 📋 ملخص البيانات الجاهزة للتحليل")
     st.markdown("---")
     
-    # استخدام البيانات المنظفة إذا موجودة، وإلا الأصلية
     df = st.session_state.df_clean if st.session_state.df_clean is not None else st.session_state.df
     
     if df is None:
@@ -751,21 +738,19 @@ elif st.session_state.page == "summary":
     else:
         st.success("✅ البيانات جاهزة للتحليل")
         
-        # الملخص السريع
         col1, col2, col3, col4 = st.columns(4)
         with col1:
             st.metric("إجمالي الصفوف", f"{len(df):,}")
         with col2:
             st.metric("إجمالي الأعمدة", len(df.columns))
         with col3:
-            st.metric("القيم المفقودة", f"{df.isnull().sum().sum():,}")
+            st.metric("القيم المفقودة", f"{int(df.isnull().sum().sum()):,}")
         with col4:
-            st.metric("التكرارات", f"{df.duplicated().sum():,}")
+            st.metric("التكرارات", f"{int(df.duplicated().sum()):,}")
         
         st.markdown("---")
         
-        # معلومات الأعمدة
-        st.markdown("### 📊 معلومات الأعمدة")
+        st.markdown("###  معلومات الأعمدة")
         
         col_info = []
         for col in df.columns:
@@ -783,13 +768,11 @@ elif st.session_state.page == "summary":
         
         st.markdown("---")
         
-        # معاينة البيانات
         st.markdown("### 👁️ معاينة البيانات (أول 10 صفوف)")
         st.dataframe(df.head(10), use_container_width=True)
         
         st.markdown("---")
         
-        # الإحصائيات الأساسية
         numeric_cols = df.select_dtypes(include=[np.number]).columns.tolist()
         if numeric_cols:
             st.markdown("### 📈 الإحصائيات الأساسية للأعمدة الرقمية")
@@ -806,22 +789,19 @@ elif st.session_state.page == "eda":
     st.markdown("## 📊 التحليل الاستكشافي المتقدم (EDA)")
     st.markdown("---")
     
-    # استخدام البيانات المنظفة إذا موجودة
     df = st.session_state.df_clean if st.session_state.df_clean is not None else st.session_state.df
     
     if df is None:
         st.warning("⚠️ يرجى رفع البيانات أولاً")
     else:
-        # تعريف المتغيرات الأساسية
         numeric_cols = df.select_dtypes(include=[np.number]).columns.tolist()
         categorical_cols = df.select_dtypes(include=['object', 'category']).columns.tolist()
         
-        # التبويبات الرئيسية
         tab1, tab2, tab3, tab4 = st.tabs([
             "📋 الجداول التكرارية",
-            " التصور البياني",
+            "📈 التصور البياني",
             "📊 المقاييس الإحصائية",
-            " Box Plots"
+            "📦 Box Plots"
         ])
         
         # ===== التبويب 1: الجداول التكرارية =====
@@ -841,7 +821,6 @@ elif st.session_state.page == "eda":
                     
                     st.dataframe(freq_table, use_container_width=True)
                     
-                    # رسم بياني للتكرارات
                     fig = px.bar(freq_table, x='القيمة', y='التكرار',
                                title=f"التكرارات لـ {selected_cat}",
                                color='التكرار',
@@ -857,7 +836,6 @@ elif st.session_state.page == "eda":
                 selected_num = st.selectbox("اختر المتغير الرقمي", numeric_cols, key="eda_freq_num")
                 
                 if selected_num:
-                    # تقسيم البيانات إلى مجموعات
                     bins = st.slider("عدد المجموعات", 5, 30, 10, key="eda_bins")
                     df_temp = df.copy()
                     df_temp['مجموعة'] = pd.cut(df_temp[selected_num], bins=bins)
@@ -869,6 +847,59 @@ elif st.session_state.page == "eda":
                     st.dataframe(freq_num, use_container_width=True)
             else:
                 st.info("لا توجد متغيرات رقمية في البيانات")
+            
+            st.markdown("---")
+            
+            if st.button("📥 تصدير تقرير الجداول التكرارية", type="primary", key="btn_export_freq"):
+                html_report = f"""
+                <!DOCTYPE html>
+                <html dir="rtl" lang="ar">
+                <head>
+                    <meta charset="UTF-8">
+                    <title>تقرير الجداول التكرارية - Smart Analytics Pro</title>
+                    <style>
+                        body {{ font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; margin: 40px; background: #f5f7fa; }}
+                        .container {{ max-width: 1200px; margin: 0 auto; background: white; padding: 40px; border-radius: 10px; box-shadow: 0 2px 10px rgba(0,0,0,0.1); }}
+                        h1 {{ color: #667eea; text-align: center; }}
+                        h2 {{ color: #764ba2; border-bottom: 2px solid #667eea; padding-bottom: 10px; margin-top: 30px; }}
+                        table {{ width: 100%; border-collapse: collapse; margin: 20px 0; }}
+                        th, td {{ padding: 12px; text-align: right; border: 1px solid #ddd; }}
+                        th {{ background: #667eea; color: white; }}
+                        tr:nth-child(even) {{ background: #f5f7fa; }}
+                        .footer {{ text-align: center; margin-top: 40px; color: #718096; }}
+                    </style>
+                </head>
+                <body>
+                    <div class="container">
+                        <h1> تقرير الجداول التكرارية</h1>
+                        <p style="text-align: center; color: #718096;">Smart Analytics Pro - {datetime.now().strftime('%Y-%m-%d %H:%M')}</p>
+                        <h2>المتغيرات الفئوية</h2>
+                """
+                
+                for cat_col in categorical_cols[:5]:
+                    freq_t = df[cat_col].value_counts().reset_index()
+                    freq_t.columns = ['القيمة', 'التكرار']
+                    freq_t['النسبة المئوية'] = (freq_t['التكرار'] / len(df) * 100).round(2)
+                    html_report += f"<h3>{cat_col}</h3>{freq_t.to_html(index=False)}"
+                
+                html_report += f"""
+                        <div class="footer">
+                            <p>تم إنشاء هذا التقرير تلقائياً بواسطة Smart Analytics Pro</p>
+                            <p>© 2026 جميع الحقوق محفوظة</p>
+                        </div>
+                    </div>
+                </body>
+                </html>
+                """
+                
+                st.download_button(
+                    label="📥 تحميل تقرير HTML",
+                    data=html_report,
+                    file_name=f"Frequency_Tables_Report_{datetime.now().strftime('%Y%m%d_%H%M%S')}.html",
+                    mime="text/html",
+                    use_container_width=True
+                )
+                st.success("✅ تم إنشاء التقرير بنجاح!")
         
         # ===== التبويب 2: التصور البياني =====
         with tab2:
@@ -944,6 +975,47 @@ elif st.session_state.page == "eda":
                                zmin=-1, zmax=1)
                 fig.update_layout(height=600)
                 st.plotly_chart(fig, use_container_width=True)
+            
+            st.markdown("---")
+            
+            if st.button("📥 تصدير تقرير التصور البياني", type="primary", key="btn_export_viz"):
+                html_report = f"""
+                <!DOCTYPE html>
+                <html dir="rtl" lang="ar">
+                <head>
+                    <meta charset="UTF-8">
+                    <title>تقرير التصور البياني - Smart Analytics Pro</title>
+                    <style>
+                        body {{ font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; margin: 40px; background: #f5f7fa; }}
+                        .container {{ max-width: 1200px; margin: 0 auto; background: white; padding: 40px; border-radius: 10px; box-shadow: 0 2px 10px rgba(0,0,0,0.1); }}
+                        h1 {{ color: #667eea; text-align: center; }}
+                        h2 {{ color: #764ba2; border-bottom: 2px solid #667eea; padding-bottom: 10px; margin-top: 30px; }}
+                        .footer {{ text-align: center; margin-top: 40px; color: #718096; }}
+                    </style>
+                </head>
+                <body>
+                    <div class="container">
+                        <h1>📈 تقرير التصور البياني</h1>
+                        <p style="text-align: center; color: #718096;">Smart Analytics Pro - {datetime.now().strftime('%Y-%m-%d %H:%M')}</p>
+                        <h2>ملخص البيانات</h2>
+                        <p>إجمالي الصفوف: {len(df):,} | إجمالي الأعمدة: {len(df.columns)} | الأعمدة الرقمية: {len(numeric_cols)} | الأعمدة الفئوية: {len(categorical_cols)}</p>
+                        <div class="footer">
+                            <p>تم إنشاء هذا التقرير تلقائياً بواسطة Smart Analytics Pro</p>
+                            <p>© 2026 جميع الحقوق محفوظة</p>
+                        </div>
+                    </div>
+                </body>
+                </html>
+                """
+                
+                st.download_button(
+                    label="📥 تحميل تقرير HTML",
+                    data=html_report,
+                    file_name=f"Visualization_Report_{datetime.now().strftime('%Y%m%d_%H%M%S')}.html",
+                    mime="text/html",
+                    use_container_width=True
+                )
+                st.success("✅ تم إنشاء التقرير بنجاح!")
         
         # ===== التبويب 3: المقاييس الإحصائية =====
         with tab3:
@@ -956,8 +1028,7 @@ elif st.session_state.page == "eda":
                 if selected_stat_col:
                     col_data = df[selected_stat_col].dropna()
                     
-                    # 1. مقاييس النزعة المركزية
-                    st.markdown("#### 1️ مقاييس النزعة المركزية (Measures of Central Tendency)")
+                    st.markdown("#### 1️⃣ مقاييس النزعة المركزية (Measures of Central Tendency)")
                     
                     mean_val = col_data.mean()
                     median_val = col_data.median()
@@ -988,7 +1059,6 @@ elif st.session_state.page == "eda":
                     
                     st.markdown("---")
                     
-                    # 2. مقاييس التشتت
                     st.markdown("#### 2️⃣ مقاييس التشتت (Measures of Dispersion)")
                     
                     range_val = col_data.max() - col_data.min()
@@ -1028,8 +1098,7 @@ elif st.session_state.page == "eda":
                     
                     st.markdown("---")
                     
-                    # 3. مقاييس الموضع
-                    st.markdown("#### 3️⃣ مقاييس الموضع (Measures of Position)")
+                    st.markdown("#### 3️ مقاييس الموضع (Measures of Position)")
                     
                     q1_val = col_data.quantile(0.25)
                     q2_val = col_data.quantile(0.50)
@@ -1086,13 +1155,11 @@ elif st.session_state.page == "eda":
                     
                     st.markdown("---")
                     
-                    # 4. الانحناء والتفلطح
                     st.markdown("#### 4️⃣ الانحناء والتفلطح (Skewness & Kurtosis)")
                     
                     skew_val = col_data.skew()
                     kurt_val = col_data.kurtosis()
                     
-                    # تفسير الانحناء
                     if skew_val > 1:
                         skew_interpretation = "التوزيع منحرف بشدة لليمين (إيجابي)"
                     elif skew_val > 0.5:
@@ -1104,7 +1171,6 @@ elif st.session_state.page == "eda":
                     else:
                         skew_interpretation = "التوزيع منحرف بشدة لليسار (سلبي)"
                     
-                    # تفسير التفلطح
                     if kurt_val > 3:
                         kurt_interpretation = "التوزيع مدبب (Leptokurtic) - ذيول ثقيلة"
                     elif kurt_val > 0:
@@ -1132,7 +1198,6 @@ elif st.session_state.page == "eda":
                     
                     st.markdown("---")
                     
-                    # ملخص شامل
                     st.markdown("#### 📋 الملخص الإحصائي الشامل")
                     
                     summary_data = {
@@ -1174,6 +1239,51 @@ elif st.session_state.page == "eda":
                     st.dataframe(summary_df, use_container_width=True)
             else:
                 st.warning("لا توجد متغيرات رقمية في البيانات")
+            
+            st.markdown("---")
+            
+            if st.button("📥 تصدير تقرير المقاييس الإحصائية", type="primary", key="btn_export_stats"):
+                html_report = f"""
+                <!DOCTYPE html>
+                <html dir="rtl" lang="ar">
+                <head>
+                    <meta charset="UTF-8">
+                    <title>تقرير المقاييس الإحصائية - Smart Analytics Pro</title>
+                    <style>
+                        body {{ font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; margin: 40px; background: #f5f7fa; }}
+                        .container {{ max-width: 1200px; margin: 0 auto; background: white; padding: 40px; border-radius: 10px; box-shadow: 0 2px 10px rgba(0,0,0,0.1); }}
+                        h1 {{ color: #667eea; text-align: center; }}
+                        h2 {{ color: #764ba2; border-bottom: 2px solid #667eea; padding-bottom: 10px; margin-top: 30px; }}
+                        table {{ width: 100%; border-collapse: collapse; margin: 20px 0; }}
+                        th, td {{ padding: 12px; text-align: right; border: 1px solid #ddd; }}
+                        th {{ background: #667eea; color: white; }}
+                        tr:nth-child(even) {{ background: #f5f7fa; }}
+                        .footer {{ text-align: center; margin-top: 40px; color: #718096; }}
+                    </style>
+                </head>
+                <body>
+                    <div class="container">
+                        <h1> تقرير المقاييس الإحصائية</h1>
+                        <p style="text-align: center; color: #718096;">Smart Analytics Pro - {datetime.now().strftime('%Y-%m-%d %H:%M')}</p>
+                        <h2>الملخص الإحصائي الشامل</h2>
+                        {summary_df.to_html(index=False) if numeric_cols else 'لا توجد بيانات رقمية'}
+                        <div class="footer">
+                            <p>تم إنشاء هذا التقرير تلقائياً بواسطة Smart Analytics Pro</p>
+                            <p>© 2026 جميع الحقوق محفوظة</p>
+                        </div>
+                    </div>
+                </body>
+                </html>
+                """
+                
+                st.download_button(
+                    label="📥 تحميل تقرير HTML",
+                    data=html_report,
+                    file_name=f"Statistics_Report_{datetime.now().strftime('%Y%m%d_%H%M%S')}.html",
+                    mime="text/html",
+                    use_container_width=True
+                )
+                st.success("✅ تم إنشاء التقرير بنجاح!")
         
         # ===== التبويب 4: Box Plots =====
         with tab4:
@@ -1181,7 +1291,6 @@ elif st.session_state.page == "eda":
             st.markdown("---")
             
             if numeric_cols:
-                # Box Plot لعمود واحد
                 st.markdown("#### Box Plot لعمود واحد")
                 selected_box = st.selectbox("اختر العمود", numeric_cols, key="eda_box_col")
                 
@@ -1192,23 +1301,19 @@ elif st.session_state.page == "eda":
                 
                 st.markdown("---")
                 
-                # Box Plot لجميع الأعمدة الرقمية
                 if len(numeric_cols) <= 10:
                     st.markdown("#### Box Plot لجميع المتغيرات الرقمية")
                     
-                    # تطبيع البيانات للمقارنة
                     df_melted = df[numeric_cols].melt(var_name='المتغير', value_name='القيمة')
                     
                     fig_box_all = px.box(df_melted, x='المتغير', y='القيمة',
                                         title="Box Plot لجميع المتغيرات الرقمية",
-                                        color='المتغير',
-                                        color_discrete_sequence=['#667eea', '#764ba2', '#f093fb', '#48bb78', '#ed8936'])
+                                        color='المتغير')
                     fig_box_all.update_layout(height=500)
                     st.plotly_chart(fig_box_all, use_container_width=True)
                 
                 st.markdown("---")
                 
-                # Box Plot حسب متغير فئوي
                 if categorical_cols and len(numeric_cols) >= 1:
                     st.markdown("#### Box Plot حسب متغير فئوي")
                     
@@ -1221,8 +1326,49 @@ elif st.session_state.page == "eda":
                     st.plotly_chart(fig_box_cat, use_container_width=True)
             else:
                 st.warning("لا توجد متغيرات رقمية في البيانات")
+            
+            st.markdown("---")
+            
+            if st.button(" تصدير تقرير Box Plots", type="primary", key="btn_export_box"):
+                html_report = f"""
+                <!DOCTYPE html>
+                <html dir="rtl" lang="ar">
+                <head>
+                    <meta charset="UTF-8">
+                    <title>تقرير Box Plots - Smart Analytics Pro</title>
+                    <style>
+                        body {{ font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; margin: 40px; background: #f5f7fa; }}
+                        .container {{ max-width: 1200px; margin: 0 auto; background: white; padding: 40px; border-radius: 10px; box-shadow: 0 2px 10px rgba(0,0,0,0.1); }}
+                        h1 {{ color: #667eea; text-align: center; }}
+                        h2 {{ color: #764ba2; border-bottom: 2px solid #667eea; padding-bottom: 10px; margin-top: 30px; }}
+                        .footer {{ text-align: center; margin-top: 40px; color: #718096; }}
+                    </style>
+                </head>
+                <body>
+                    <div class="container">
+                        <h1>📦 تقرير Box Plots</h1>
+                        <p style="text-align: center; color: #718096;">Smart Analytics Pro - {datetime.now().strftime('%Y-%m-%d %H:%M')}</p>
+                        <h2>ملخص Box Plots</h2>
+                        <p>عدد المتغيرات الرقمية: {len(numeric_cols)}</p>
+                        <div class="footer">
+                            <p>تم إنشاء هذا التقرير تلقائياً بواسطة Smart Analytics Pro</p>
+                            <p>© 2026 جميع الحقوق محفوظة</p>
+                        </div>
+                    </div>
+                </body>
+                </html>
+                """
+                
+                st.download_button(
+                    label=" تحميل تقرير HTML",
+                    data=html_report,
+                    file_name=f"BoxPlots_Report_{datetime.now().strftime('%Y%m%d_%H%M%S')}.html",
+                    mime="text/html",
+                    use_container_width=True
+                )
+                st.success("✅ تم إنشاء التقرير بنجاح!")
 
-# ===== باقي الصفحات (مبسطة) =====
+# ===== باقي الصفحات =====
 elif st.session_state.page == "diagnostic":
     st.markdown("## 🔍 التحليل التشخيصي")
     
@@ -1251,13 +1397,13 @@ elif st.session_state.page == "predictive":
     df = st.session_state.df_clean if st.session_state.df_clean is not None else st.session_state.df
     
     if df is None:
-        st.warning("️ ارفع بيانات أولاً")
+        st.warning("⚠️ ارفع بيانات أولاً")
     else:
         numeric_cols = df.select_dtypes(include=[np.number]).columns.tolist()
         if len(numeric_cols) >= 2:
             target = st.selectbox("الهدف", numeric_cols, key="pred_target")
             feature = st.selectbox("الميزة", [c for c in numeric_cols if c != target], key="pred_feat")
-            if st.button(" تنبؤ", key="btn_pred"):
+            if st.button("🚀 تنبؤ", key="btn_pred"):
                 X = df[[feature]].values
                 y = df[target].values
                 X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2, random_state=42)
@@ -1305,18 +1451,17 @@ elif st.session_state.page == "export":
     df = st.session_state.df_clean if st.session_state.df_clean is not None else st.session_state.df
     
     if df is None:
-        st.warning("️ ارفع بيانات أولاً")
+        st.warning("⚠️ ارفع بيانات أولاً")
     else:
         col1, col2 = st.columns(2)
         with col1:
             csv = df.to_csv(index=False).encode('utf-8-sig')
-            st.download_button("📥 CSV", csv, "data.csv", "text/csv", key="dl_csv")
+            st.download_button(" CSV", csv, "data.csv", "text/csv", key="dl_csv")
         with col2:
             output = io.BytesIO()
             with pd.ExcelWriter(output, engine='xlsxwriter') as writer:
                 df.to_excel(writer, index=False)
             st.download_button("📥 Excel", output.getvalue(), "data.xlsx", key="dl_excel")
 
-# Footer
 st.markdown("---")
 st.markdown("<div style='text-align: center; color: #718096; padding: 20px;'>Smart Analytics Pro © 2026</div>", unsafe_allow_html=True)
