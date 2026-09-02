@@ -213,7 +213,7 @@ if not st.session_state.logged_in:
         col1, col2, col3 = st.columns([1, 2, 1])
         with col2:
             new_username = st.text_input("👤 اسم المستخدم", key="reg_username")
-            new_name = st.text_input("👤 الاسم الكامل", key="reg_name")
+            new_name = st.text_input(" الاسم الكامل", key="reg_name")
             new_email = st.text_input("📧 البريد الإلكتروني", key="reg_email")
             new_password = st.text_input("🔑 كلمة المرور", type="password", key="reg_password")
             confirm_password = st.text_input("🔑 تأكيد كلمة المرور", type="password", key="reg_confirm")
@@ -233,9 +233,9 @@ if not st.session_state.logged_in:
                         st.session_state.show_register = False
                         st.rerun()
                     else:
-                        st.error(f"❌ {message}")
+                        st.error(f" {message}")
             
-            if st.button("🔐 لديك حساب؟ دخول", use_container_width=True, type="secondary", key="btn_go_login"):
+            if st.button(" لديك حساب؟ دخول", use_container_width=True, type="secondary", key="btn_go_login"):
                 st.session_state.show_register = False
                 st.rerun()
     else:
@@ -262,7 +262,7 @@ if not st.session_state.logged_in:
                     st.error("❌ اسم المستخدم أو كلمة المرور غير صحيحة")
         
         st.markdown("---")
-        if st.button(" ليس لديك حساب؟ سجل الآن", use_container_width=True, type="secondary", key="btn_go_register"):
+        if st.button("📝 ليس لديك حساب؟ سجل الآن", use_container_width=True, type="secondary", key="btn_go_register"):
             st.session_state.show_register = True
             st.rerun()
         
@@ -292,7 +292,7 @@ def generate_local_ai_insights(df):
         if count > 0:
             pct = round((count / len(df)) * 100, 1)
             if pct > 5:
-                insights.append(f"️ العمود {col} يحتوي على {count} قيمة مفقودة ({pct}%)")
+                insights.append(f"⚠️ العمود {col} يحتوي على {count} قيمة مفقودة ({pct}%)")
 
     if len(numeric_cols) >= 2:
         corr_matrix = df[numeric_cols].corr().abs()
@@ -302,7 +302,7 @@ def generate_local_ai_insights(df):
             top_corr = max_corr.index[0]
             val = round(max_corr.iloc[0], 2)
             if val > 0.7:
-                insights.append(f"🔗 ارتباط قوي بين {top_corr[0]} و {top_corr[1]} ({val})")
+                insights.append(f" ارتباط قوي بين {top_corr[0]} و {top_corr[1]} ({val})")
 
     if len(categorical_cols) >= 1 and len(numeric_cols) >= 1:
         cat_col = categorical_cols[0]
@@ -328,7 +328,7 @@ with st.sidebar:
         """, unsafe_allow_html=True)
     
     st.markdown("---")
-    st.markdown("###  التنقل السريع")
+    st.markdown("### 📍 التنقل السريع")
     
     menu = {
         "home": "🏠 الرئيسية",
@@ -380,7 +380,7 @@ if st.session_state.page == "home":
     with col1:
         st.markdown("""
         <div class="feature-card">
-            <div style="font-size: 60px; margin-bottom: 20px;"></div>
+            <div style="font-size: 60px; margin-bottom: 20px;">📊</div>
             <h3>التحليل الاستكشافي</h3>
             <p>فهم شامل لبياناتك مع رسوم بيانية تفاعلية</p>
         </div>
@@ -389,7 +389,7 @@ if st.session_state.page == "home":
     with col2:
         st.markdown("""
         <div class="feature-card">
-            <div style="font-size: 60px; margin-bottom: 20px;">🔍</div>
+            <div style="font-size: 60px; margin-bottom: 20px;"></div>
             <h3>التحليل التشخيصي</h3>
             <p>اكتشف الأنماط والشذوذ في بياناتك</p>
         </div>
@@ -398,7 +398,7 @@ if st.session_state.page == "home":
     with col3:
         st.markdown("""
         <div class="feature-card">
-            <div style="font-size: 60px; margin-bottom: 20px;"></div>
+            <div style="font-size: 60px; margin-bottom: 20px;">🔮</div>
             <h3>التحليل التنبؤي</h3>
             <p>تنبؤات دقيقة باستخدام الذكاء الاصطناعي</p>
         </div>
@@ -420,8 +420,8 @@ if st.session_state.page == "home":
             <p><strong>ابدأ الآن في 3 خطوات بسيطة:</strong></p>
             <ol>
                 <li>📥 اضغط على "استيراد البيانات" من القائمة الجانبية</li>
-                <li>📊 ارفع ملف CSV أو Excel</li>
-                <li> استكشف التحليلات والرؤى الذكية</li>
+                <li> ارفع ملف CSV أو Excel</li>
+                <li>🎯 استكشف التحليلات والرؤى الذكية</li>
             </ol>
         </div>
         """, unsafe_allow_html=True)
@@ -514,51 +514,344 @@ elif st.session_state.page == "data_import":
             st.dataframe(df.head(10), use_container_width=True)
 
 elif st.session_state.page == "eda":
-    st.markdown("## 📊 التحليل الاستكشافي")
+    st.markdown("## 📊 التحليل الاستكشافي المتقدم (EDA)")
+    st.markdown("---")
     
     if st.session_state.df is None:
-        st.warning("⚠️ ارفع بيانات أولاً")
+        st.warning("⚠️ يرجى رفع البيانات أولاً من صفحة 'استيراد البيانات'")
     else:
         df = st.session_state.df
         
-        col1, col2, col3 = st.columns(3)
-        with col1:
-            st.info(f"**إجمالي الصفوف:** {len(df):,}")
-        with col2:
-            st.info(f"**إجمالي الأعمدة:** {len(df.columns)}")
-        with col3:
-            missing_total = df.isnull().sum().sum()
-            st.info(f"**القيم المفقودة:** {missing_total}")
+        # ====== التبويبات الرئيسية ======
+        tab1, tab2, tab3, tab4, tab5, tab6 = st.tabs([
+            "📋 نظرة عامة",
+            "📈 التوزيعات",
+            "🔗 الارتباطات",
+            " التحليل الفئوي",
+            "🔍 القيم المتطرفة",
+            " التقرير"
+        ])
         
-        st.markdown("---")
-        st.markdown("###  الملخص الإحصائي الشامل")
-        with st.expander("عرض الملخص الإحصائي", expanded=True):
+        # ====== التبويب 1: نظرة عامة ======
+        with tab1:
+            st.markdown("### 📋 نظرة عامة على البيانات")
+            
+            col1, col2, col3, col4 = st.columns(4)
+            with col1:
+                st.metric("إجمالي الصفوف", f"{len(df):,}")
+            with col2:
+                st.metric("إجمالي الأعمدة", len(df.columns))
+            with col3:
+                st.metric("الذاكرة المستخدمة", f"{df.memory_usage(deep=True).sum() / 1024**2:.2f} MB")
+            with col4:
+                st.metric("القيم المفقودة", f"{df.isnull().sum().sum():,}")
+            
+            st.markdown("---")
+            
+            col1, col2 = st.columns(2)
+            with col1:
+                st.markdown("#### أنواع البيانات")
+                dtype_df = pd.DataFrame({
+                    'النوع': df.dtypes,
+                    'العدد': df.dtypes.value_counts()
+                })
+                st.dataframe(dtype_df, use_container_width=True)
+            
+            with col2:
+                st.markdown("#### أول 5 صفوف")
+                st.dataframe(df.head(), use_container_width=True)
+            
+            st.markdown("---")
+            st.markdown("#### الإحصائيات الوصفية الشاملة")
             st.dataframe(df.describe(), use_container_width=True)
+            
+            with st.expander(" معلومات تفصيلية عن الأعمدة"):
+                info_df = pd.DataFrame({
+                    'العمود': df.columns,
+                    'النوع': [str(dtype) for dtype in df.dtypes],
+                    'القيم الفريدة': [df[col].nunique() for col in df.columns],
+                    'القيم المفقودة': [df[col].isnull().sum() for col in df.columns],
+                    'نسبة المفقودين': [f"{(df[col].isnull().sum()/len(df))*100:.2f}%" for col in df.columns]
+                })
+                st.dataframe(info_df, use_container_width=True)
         
-        st.markdown("###  تحليل القيم المفقودة")
-        missing_data = df.isnull().sum().reset_index()
-        missing_data.columns = ['Column', 'Missing Count']
-        missing_data = missing_data[missing_data['Missing Count'] > 0]
+        # ====== التبويب 2: التوزيعات ======
+        with tab2:
+            st.markdown("### 📈 تحليل التوزيعات")
+            
+            numeric_cols = df.select_dtypes(include=[np.number]).columns.tolist()
+            
+            if numeric_cols:
+                st.markdown("#### توزيع المتغيرات الرقمية")
+                
+                selected_col = st.selectbox("اختر العمود للتحليل", numeric_cols, key="eda_dist_col")
+                
+                col1, col2 = st.columns(2)
+                with col1:
+                    fig_hist = px.histogram(df, x=selected_col, 
+                                           title=f"توزيع {selected_col}",
+                                           nbins=30,
+                                           color_discrete_sequence=['#667eea'])
+                    fig_hist.update_layout(showlegend=False)
+                    st.plotly_chart(fig_hist, use_container_width=True)
+                
+                with col2:
+                    fig_kde = px.density_curve(df, x=selected_col,
+                                              title=f"منحنى الكثافة لـ {selected_col}",
+                                              color_discrete_sequence=['#764ba2'])
+                    st.plotly_chart(fig_kde, use_container_width=True)
+                
+                fig_box = px.box(df, y=selected_col,
+                               title=f"مخطط الصندوق لـ {selected_col}",
+                               color_discrete_sequence=['#f093fb'])
+                st.plotly_chart(fig_box, use_container_width=True)
+                
+                st.markdown("---")
+                st.markdown("#### توزيع جميع المتغيرات الرقمية")
+                
+                if len(numeric_cols) <= 10:
+                    fig_pair = px.scatter_matrix(df[numeric_cols],
+                                                title="مصفوفة التشتت للمتغيرات الرقمية",
+                                                dimensions=numeric_cols,
+                                                color_discrete_sequence=['#667eea'])
+                    fig_pair.update_layout(height=800)
+                    st.plotly_chart(fig_pair, use_container_width=True)
+            else:
+                st.warning("لا توجد متغيرات رقمية في البيانات")
         
-        if not missing_data.empty:
-            fig = px.bar(missing_data, x='Column', y='Missing Count', 
-                        title="القيم المفقودة لكل عمود", 
-                        color='Missing Count',
-                        color_continuous_scale='Reds')
-            st.plotly_chart(fig, use_container_width=True)
-        else:
-            st.success("✅ ممتاز! لا توجد قيم مفقودة في البيانات.")
+        # ====== التبويب 3: الارتباطات ======
+        with tab3:
+            st.markdown("### 🔗 تحليل الارتباطات")
+            
+            if len(numeric_cols) >= 2:
+                st.markdown("#### مصفوفة الارتباط")
+                
+                corr_method = st.selectbox("طريقة الحساب", 
+                                         ['pearson', 'spearman', 'kendall'],
+                                         key="eda_corr_method")
+                
+                corr_matrix = df[numeric_cols].corr(method=corr_method)
+                
+                fig_heatmap = px.imshow(corr_matrix,
+                                       text_auto=".2f",
+                                       aspect="auto",
+                                       title="مصفوفة الارتباط",
+                                       color_continuous_scale="RdBu_r",
+                                       zmin=-1, zmax=1)
+                fig_heatmap.update_layout(height=600)
+                st.plotly_chart(fig_heatmap, use_container_width=True)
+                
+                st.markdown("---")
+                st.markdown("#### أقوى الارتباطات")
+                
+                corr_pairs = []
+                for i in range(len(corr_matrix.columns)):
+                    for j in range(i+1, len(corr_matrix.columns)):
+                        corr_pairs.append({
+                            'المتغير 1': corr_matrix.columns[i],
+                            'المتغير 2': corr_matrix.columns[j],
+                            'الارتباط': corr_matrix.iloc[i, j]
+                        })
+                
+                corr_df = pd.DataFrame(corr_pairs)
+                top_positive = corr_df.nlargest(5, 'الارتباط')
+                top_negative = corr_df.nsmallest(5, 'الارتباط')
+                
+                col1, col2 = st.columns(2)
+                with col1:
+                    st.markdown("**الأعلى إيجابياً**")
+                    st.dataframe(top_positive, use_container_width=True)
+                
+                with col2:
+                    st.markdown("**الأعلى سلبياً**")
+                    st.dataframe(top_negative, use_container_width=True)
+                
+                if len(top_positive) > 0:
+                    st.markdown("---")
+                    st.markdown("#### تصور لأقوى ارتباط")
+                    
+                    var1 = top_positive.iloc[0]['المتغير 1']
+                    var2 = top_positive.iloc[0]['المتغير 2']
+                    
+                    fig_scatter = px.scatter(df, x=var1, y=var2,
+                                           title=f"العلاقة بين {var1} و {var2}",
+                                           trendline="ols",
+                                           color_discrete_sequence=['#667eea'])
+                    st.plotly_chart(fig_scatter, use_container_width=True)
+            else:
+                st.warning("تحتاج متغيرين رقميين على الأقل لتحليل الارتباط")
         
-        st.markdown("### 🔗 مصفوفة الارتباط")
-        numeric_df = df.select_dtypes(include=[np.number])
-        if len(numeric_df.columns) > 1:
-            corr = numeric_df.corr()
-            fig_heatmap = px.imshow(corr, text_auto=".2f", aspect="auto", 
-                                   color_continuous_scale="RdBu_r",
-                                   title="مصفوفة الارتباط بين المتغيرات الرقمية")
-            st.plotly_chart(fig_heatmap, use_container_width=True)
-        else:
-            st.info("لا توجد أعمدة رقمية كافية لرسم مصفوفة الارتباط.")
+        # ====== التبويب 4: التحليل الفئوي ======
+        with tab4:
+            st.markdown("### 📊 التحليل الفئوي")
+            
+            categorical_cols = df.select_dtypes(include=['object', 'category']).columns.tolist()
+            
+            if categorical_cols:
+                selected_cat = st.selectbox("اختر المتغير الفئوي", categorical_cols, key="eda_cat_col")
+                
+                value_counts = df[selected_cat].value_counts().head(10)
+                
+                col1, col2 = st.columns(2)
+                with col1:
+                    fig_bar = px.bar(x=value_counts.values,
+                                   y=value_counts.index,
+                                   orientation='h',
+                                   title=f"توزيع {selected_cat}",
+                                   color_discrete_sequence=['#667eea'])
+                    st.plotly_chart(fig_bar, use_container_width=True)
+                
+                with col2:
+                    fig_pie = px.pie(values=value_counts.values,
+                                   names=value_counts.index,
+                                   title=f"النسب المئوية لـ {selected_cat}",
+                                   hole=0.3)
+                    st.plotly_chart(fig_pie, use_container_width=True)
+                
+                st.markdown("---")
+                st.markdown("#### جدول التكرارات")
+                freq_df = pd.DataFrame({
+                    'القيمة': value_counts.index,
+                    'التكرار': value_counts.values,
+                    'النسبة': (value_counts.values / len(df) * 100).round(2)
+                })
+                st.dataframe(freq_df, use_container_width=True)
+            else:
+                st.warning("لا توجد متغيرات فئوية في البيانات")
+        
+        # ====== التبويب 5: القيم المتطرفة ======
+        with tab5:
+            st.markdown("### 🔍 كشف القيم المتطرفة")
+            
+            if len(numeric_cols) >= 1:
+                outlier_col = st.selectbox("اختر العمود", numeric_cols, key="eda_outlier_col")
+                
+                method = st.selectbox("طريقة الكشف", 
+                                    ['IQR', 'Z-Score'],
+                                    key="eda_outlier_method")
+                
+                if method == 'IQR':
+                    Q1 = df[outlier_col].quantile(0.25)
+                    Q3 = df[outlier_col].quantile(0.75)
+                    IQR = Q3 - Q1
+                    lower_bound = Q1 - 1.5 * IQR
+                    upper_bound = Q3 + 1.5 * IQR
+                    
+                    outliers = df[(df[outlier_col] < lower_bound) | (df[outlier_col] > upper_bound)]
+                else:
+                    mean = df[outlier_col].mean()
+                    std = df[outlier_col].std()
+                    threshold = st.slider("الحد (Z-Score)", 2.0, 4.0, 3.0)
+                    
+                    z_scores = np.abs((df[outlier_col] - mean) / std)
+                    outliers = df[z_scores > threshold]
+                
+                col1, col2, col3 = st.columns(3)
+                with col1:
+                    st.metric("إجمالي السجلات", len(df))
+                with col2:
+                    st.metric("القيم المتطرفة", len(outliers))
+                with col3:
+                    pct = (len(outliers) / len(df) * 100) if len(df) > 0 else 0
+                    st.metric("النسبة", f"{pct:.2f}%")
+                
+                fig_box = px.box(df, y=outlier_col,
+                               title=f"مخطط الصندوق - {outlier_col}",
+                               color_discrete_sequence=['#667eea'])
+                st.plotly_chart(fig_box, use_container_width=True)
+                
+                if len(outliers) > 0:
+                    with st.expander(f"📋 عرض القيم المتطرفة ({len(outliers)} سجل)"):
+                        st.dataframe(outliers, use_container_width=True)
+            else:
+                st.warning("لا توجد متغيرات رقمية للتحليل")
+        
+        # ====== التبويب 6: التقرير ======
+        with tab6:
+            st.markdown("### 📄 تصدير التقرير")
+            
+            st.markdown("#### اختر صيغة التقرير")
+            
+            report_format = st.selectbox("الصيغة", ["HTML", "Excel"], key="eda_report_format")
+            
+            if st.button("📊 إنشاء التقرير", type="primary", key="btn_gen_report"):
+                html_report = f"""
+                <!DOCTYPE html>
+                <html dir="rtl" lang="ar">
+                <head>
+                    <meta charset="UTF-8">
+                    <title>تقرير التحليل الاستكشافي - Smart Analytics Pro</title>
+                    <style>
+                        body {{ font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; 
+                               margin: 40px; background: #f5f7fa; }}
+                        .container {{ max-width: 1200px; margin: 0 auto; 
+                                     background: white; padding: 40px; border-radius: 10px; 
+                                     box-shadow: 0 2px 10px rgba(0,0,0,0.1); }}
+                        h1 {{ color: #667eea; text-align: center; }}
+                        h2 {{ color: #764ba2; border-bottom: 2px solid #667eea; 
+                             padding-bottom: 10px; margin-top: 30px; }}
+                        .metric {{ display: inline-block; margin: 10px; padding: 20px; 
+                                  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+                                  color: white; border-radius: 8px; min-width: 150px; 
+                                  text-align: center; }}
+                        table {{ width: 100%; border-collapse: collapse; margin: 20px 0; }}
+                        th, td {{ padding: 12px; text-align: right; border: 1px solid #ddd; }}
+                        th {{ background: #667eea; color: white; }}
+                        tr:nth-child(even) {{ background: #f5f7fa; }}
+                        .footer {{ text-align: center; margin-top: 40px; color: #718096; }}
+                    </style>
+                </head>
+                <body>
+                    <div class="container">
+                        <h1>📊 تقرير التحليل الاستكشافي</h1>
+                        <p style="text-align: center; color: #718096;">Smart Analytics Pro - {datetime.now().strftime('%Y-%m-%d %H:%M')}</p>
+                        
+                        <h2>📋 نظرة عامة</h2>
+                        <div class="metric">الصفوف: {len(df):,}</div>
+                        <div class="metric">الأعمدة: {len(df.columns)}</div>
+                        <div class="metric">الذاكرة: {df.memory_usage(deep=True).sum() / 1024**2:.2f} MB</div>
+                        <div class="metric">المفقودة: {df.isnull().sum().sum():,}</div>
+                        
+                        <h2>📈 الإحصائيات الوصفية</h2>
+                        {df.describe().to_html()}
+                        
+                        <h2>📊 أنواع البيانات</h2>
+                        {dtype_df.to_html()}
+                        
+                        <div class="footer">
+                            <p>تم إنشاء هذا التقرير تلقائياً بواسطة Smart Analytics Pro</p>
+                            <p>© 2026 جميع الحقوق محفوظة</p>
+                        </div>
+                    </div>
+                </body>
+                </html>
+                """
+                
+                if report_format == "HTML":
+                    st.download_button(
+                        label=" تحميل تقرير HTML",
+                        data=html_report,
+                        file_name=f"EDA_Report_{datetime.now().strftime('%Y%m%d_%H%M%S')}.html",
+                        mime="text/html",
+                        use_container_width=True
+                    )
+                
+                else:
+                    output = io.BytesIO()
+                    with pd.ExcelWriter(output, engine='xlsxwriter') as writer:
+                        df.describe().to_excel(writer, sheet_name='Descriptive Stats')
+                        dtype_df.to_excel(writer, sheet_name='Data Types', index=True)
+                        info_df.to_excel(writer, sheet_name='Column Info', index=False)
+                    
+                    st.download_button(
+                        label="📥 تحميل تقرير Excel",
+                        data=output.getvalue(),
+                        file_name=f"EDA_Report_{datetime.now().strftime('%Y%m%d_%H%M%S')}.xlsx",
+                        mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+                        use_container_width=True
+                    )
+                
+                st.success("✅ تم إنشاء التقرير بنجاح!")
 
 elif st.session_state.page == "diagnostic":
     st.markdown("## 🔍 التحليل التشخيصي")
@@ -566,45 +859,19 @@ elif st.session_state.page == "diagnostic":
     if st.session_state.df is None:
         st.warning("⚠️ ارفع بيانات أولاً")
     else:
-        st.markdown("###  كشف الشذوذ (Anomaly Detection)")
         numeric_cols = st.session_state.df.select_dtypes(include=[np.number]).columns.tolist()
-        
         if numeric_cols:
-            target_col = st.selectbox("اختر العمود الرقمي للفحص", numeric_cols, key="diag_target")
-            threshold = st.slider("حد الشذوذ (Z-Score Threshold)", 2.0, 4.0, 3.0,
-                                 help="القيم الأقل من -threshold أو الأكبر من +threshold تعتبر شاذة",
-                                 key="diag_threshold")
-            
-            if st.button("🔍 تشخيص البيانات", type="primary", key="btn_diagnose"):
-                mean = np.mean(st.session_state.df[target_col])
-                std = np.std(st.session_state.df[target_col])
-                z_scores = np.abs((st.session_state.df[target_col] - mean) / std)
-                
-                st.session_state.df['Is_Anomaly'] = z_scores > threshold
-                anomalies = st.session_state.df[st.session_state.df['Is_Anomaly']]
-                
-                col1, col2, col3 = st.columns(3)
-                with col1:
-                    st.metric("إجمالي السجلات", len(st.session_state.df))
-                with col2:
-                    st.metric("حالات الشذوذ", len(anomalies))
-                with col3:
-                    pct = (len(anomalies)/len(st.session_state.df))*100
-                    st.metric("نسبة الشذوذ", f"{pct:.2f}%")
-                
+            col = st.selectbox("اختر العمود", numeric_cols)
+            threshold = st.slider("الحد", 2.0, 4.0, 3.0)
+            if st.button("🔍 تحليل", key="btn_diag"):
+                mean = np.mean(st.session_state.df[col])
+                std = np.std(st.session_state.df[col])
+                z_scores = np.abs((st.session_state.df[col] - mean) / std)
+                st.session_state.df['Anomaly'] = z_scores > threshold
+                anomalies = st.session_state.df[st.session_state.df['Anomaly']]
+                st.metric("حالات الشذوذ", len(anomalies))
                 if len(anomalies) > 0:
-                    st.markdown("###  عينة من حالات الشذوذ:")
-                    st.dataframe(anomalies.head(10), use_container_width=True)
-                    
-                    fig = px.scatter(st.session_state.df, 
-                                    x=range(len(st.session_state.df)), 
-                                    y=target_col,
-                                    color='Is_Anomaly',
-                                    title=f'توزيع القيم مع تحديد الشذوذ - {target_col}',
-                                    color_discrete_map={True: 'red', False: 'blue'})
-                    st.plotly_chart(fig, use_container_width=True)
-        else:
-            st.warning("لا توجد أعمدة رقمية للتحليل.")
+                    st.dataframe(anomalies)
 
 elif st.session_state.page == "predictive":
     st.markdown("## 🔮 التحليل التنبؤي")
@@ -612,178 +879,71 @@ elif st.session_state.page == "predictive":
     if st.session_state.df is None:
         st.warning("⚠️ ارفع بيانات أولاً")
     else:
-        st.info("🤖 يتم استخدام نموذج Linear Regression للتنبؤ")
-        
         numeric_cols = st.session_state.df.select_dtypes(include=[np.number]).columns.tolist()
-        
         if len(numeric_cols) >= 2:
-            col1, col2 = st.columns(2)
-            with col1:
-                target = st.selectbox("اختر العمود المراد التنبؤ به (Target)", numeric_cols, key="pred_target")
-            with col2:
-                feature = st.selectbox("اختر عمود الميزة (Feature)", [c for c in numeric_cols if c != target], key="pred_feature")
-            
-            if st.button(" بناء النموذج والتنبؤ", type="primary", key="btn_predict"):
+            target = st.selectbox("الهدف", numeric_cols, key="pred_target")
+            feature = st.selectbox("الميزة", [c for c in numeric_cols if c != target], key="pred_feat")
+            if st.button(" تنبؤ", key="btn_pred"):
                 X = st.session_state.df[[feature]].values
                 y = st.session_state.df[target].values
-                
                 X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2, random_state=42)
                 model = LinearRegression()
                 model.fit(X_train, y_train)
-                predictions = model.predict(X_test)
-                
-                r2 = r2_score(y_test, predictions)
-                mse = mean_squared_error(y_test, predictions)
-                
-                col1, col2 = st.columns(2)
-                with col1:
-                    st.metric("دقة النموذج (R² Score)", f"{r2:.3f}")
-                with col2:
-                    st.metric("خطأ التربيعي (MSE)", f"{mse:.3f}")
-                
-                st.success(f"**معادلة الانحدار:** {target} = {model.coef_[0]:.3f} × {feature} + {model.intercept_:.3f}")
-                
-                fig = px.scatter(x=y_test, y=predictions, 
-                                labels={'x': 'القيم الفعلية', 'y': 'القيم المتوقعة'}, 
-                                title="القيم الفعلية مقابل المتوقعة",
-                                color_discrete_sequence=['#3182ce'])
-                fig.add_shape(type="line", line=dict(dash='dash', color='red'), 
-                             x0=min(y_test), y0=min(y_test), x1=max(y_test), y1=max(y_test))
+                preds = model.predict(X_test)
+                r2 = r2_score(y_test, preds)
+                st.metric("R² Score", f"{r2:.3f}")
+                fig = px.scatter(x=y_test, y=preds, labels={'x': 'Actual', 'y': 'Predicted'})
                 st.plotly_chart(fig, use_container_width=True)
-        else:
-            st.warning("تحتاج إلى عمودين رقميين على الأقل لإجراء التحليل التنبؤي.")
 
 elif st.session_state.page == "prescriptive":
     st.markdown("## 💡 التحليل الإرشادي")
     
     if st.session_state.df is None:
-        st.warning("⚠️ يرجى رفع البيانات أولاً")
+        st.warning("⚠️ ارفع بيانات أولاً")
     else:
-        st.markdown("### 💡 التوصيات المبنية على البيانات")
-        
-        with st.spinner("🤖 جاري تحليل البيانات واستخراج الرؤى..."):
-            insights = generate_local_ai_insights(st.session_state.df)
-            
-            for i, insight in enumerate(insights, 1):
-                if "️" in insight:
-                    st.warning(insight)
-                elif "🔗" in insight:
-                    st.info(insight)
-                elif "🏆" in insight:
-                    st.success(insight)
-                else:
-                    st.markdown(f"""
-                    <div class="info-box">
-                        {insight}
-                    </div>
-                    """, unsafe_allow_html=True)
-        
-        st.markdown("---")
-        st.markdown("### 📋 خطة العمل المقترحة")
-        
-        st.markdown("""
-        <div class="success-box">
-            <h4>الخطوات العملية:</h4>
-            <ol>
-                <li><strong>معالجة البيانات:</strong> ابدأ بتنظيف القيم المفقودة التي تم تحديدها في التحليل الاستكشافي</li>
-                <li><strong>التحسين:</strong> ركز على الفئات ذات الأداء الأعلى لتعزيز العائد (ROI)</li>
-                <li><strong>المراقبة:</strong> راقب حالات الشذوذ التي تم اكتشافها بشكل دوري</li>
-                <li><strong>التنفيذ:</strong> طبق التوصيات وقيّم النتائج</li>
-            </ol>
-        </div>
-        """, unsafe_allow_html=True)
+        insights = generate_local_ai_insights(st.session_state.df)
+        for insight in insights:
+            if "⚠️" in insight:
+                st.warning(insight)
+            elif "🔗" in insight:
+                st.info(insight)
+            elif "🏆" in insight:
+                st.success(insight)
+            else:
+                st.info(insight)
 
 elif st.session_state.page == "ai_chat":
     st.markdown("## 🤖 المساعد الذكي")
-    st.markdown("اسأل أسئلة عملية عن بياناتك")
     
     if st.session_state.df is None:
-        st.warning("⚠️ يرجى رفع البيانات أولاً")
+        st.warning("⚠️ ارفع بيانات أولاً")
     else:
-        st.markdown("💡 **أمثلة على الأسئلة:**")
-        st.markdown("- كم عدد الصفوف والأعمدة؟")
-        st.markdown("- ما هي الأعمدة المتاحة؟")
-        st.markdown("- ما هو متوسط القيم الرقمية؟")
-        st.markdown("- كم عدد القيم المفقودة؟")
-        
-        prompt = st.text_input("اكتب سؤالك هنا:", 
-                              placeholder="مثال: ما هو متوسط المبيعات؟",
-                              label_visibility="collapsed",
-                              key="chat_prompt")
-        
+        prompt = st.text_input("اسأل عن بياناتك:", key="chat_q")
         if prompt:
-            with st.spinner("🤔 جاري التحليل..."):
-                response = ""
-                prompt_lower = prompt.lower()
-                
-                if "عدد" in prompt_lower or "rows" in prompt_lower or "shape" in prompt_lower:
-                    response = f"📊 يحتوي جدول البيانات على **{len(st.session_state.df)} صف** و **{len(st.session_state.df.columns)} عمود**."
-                
-                elif "أعمدة" in prompt_lower or "columns" in prompt_lower:
-                    cols_list = ", ".join(st.session_state.df.columns.tolist())
-                    response = f"📋 الأعمدة المتاحة هي:\n\n{cols_list}"
-                
-                elif "متوسط" in prompt_lower or "mean" in prompt_lower or "average" in prompt_lower:
-                    num_cols = st.session_state.df.select_dtypes(include=[np.number]).columns.tolist()
-                    if num_cols:
-                        response = "📈 متوسط القيم للأعمدة الرقمية:\n\n"
-                        for col in num_cols[:5]:
-                            response += f"- **{col}**: {st.session_state.df[col].mean():.2f}\n"
-                    else:
-                        response = "❌ لا توجد أعمدة رقمية لحساب المتوسط."
-                
-                elif "فقد" in prompt_lower or "missing" in prompt_lower:
-                    missing = st.session_state.df.isnull().sum().sum()
-                    response = f"⚠️ يوجد إجمالي **{missing} قيمة مفقودة** في كامل مجموعة البيانات."
-                
-                else:
-                    response = "💭 عذراً، أنا أركز حالياً على الإحصائيات الوصفية الأساسية. جرب السؤال عن:\n- عدد الصفوف والأعمدة\n- الأعمدة المتاحة\n- المتوسطات\n- القيم المفقودة"
-                
-                st.markdown(f"""
-                <div class="info-box">
-                    <strong>🤖 المساعد الذكي:</strong><br>
-                    {response}
-                </div>
-                """, unsafe_allow_html=True)
+            if "عدد" in prompt or "rows" in prompt:
+                st.write(f"📊 عدد الصفوف: {len(st.session_state.df)}")
+            elif "أعمدة" in prompt or "columns" in prompt:
+                st.write(f"📋 الأعمدة: {', '.join(st.session_state.df.columns.tolist())}")
+            elif "متوسط" in prompt:
+                num_cols = st.session_state.df.select_dtypes(include=[np.number]).columns.tolist()
+                for col in num_cols[:3]:
+                    st.write(f"- {col}: {st.session_state.df[col].mean():.2f}")
 
 elif st.session_state.page == "export":
-    st.markdown("##  مركز التصدير")
+    st.markdown("## 💾 التصدير")
     
     if st.session_state.df is None:
-        st.warning("️ يرجى رفع البيانات أولاً")
+        st.warning("️ ارفع بيانات أولاً")
     else:
-        st.markdown("### تصدير البيانات المعالجة")
-        
         col1, col2 = st.columns(2)
-        
         with col1:
-            st.markdown("#### 📄 تصدير كـ CSV")
             csv = st.session_state.df.to_csv(index=False).encode('utf-8-sig')
-            st.download_button(
-                label="📥 تحميل CSV",
-                data=csv,
-                file_name=f"smart_analytics_export_{datetime.now().strftime('%Y%m%d_%H%M%S')}.csv",
-                mime="text/csv",
-                use_container_width=True,
-                key="btn_download_csv"
-            )
-        
+            st.download_button(" CSV", csv, "data.csv", "text/csv", key="dl_csv")
         with col2:
-            st.markdown("#### 📊 تصدير كـ Excel")
             output = io.BytesIO()
             with pd.ExcelWriter(output, engine='xlsxwriter') as writer:
-                st.session_state.df.to_excel(writer, index=False, sheet_name='Data')
-            st.download_button(
-                label="📥 تحميل Excel",
-                data=output.getvalue(),
-                file_name=f"smart_analytics_export_{datetime.now().strftime('%Y%m%d_%H%M%S')}.xlsx",
-                mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
-                use_container_width=True,
-                key="btn_download_excel"
-            )
-        
-        st.success("✅ تم تجهيز الملفات للتصدير بنجاح!")
+                st.session_state.df.to_excel(writer, index=False)
+            st.download_button("📥 Excel", output.getvalue(), "data.xlsx", key="dl_excel")
 
-# تذييل الصفحة
 st.markdown("---")
 st.markdown("<div style='text-align: center; color: #718096; padding: 20px;'>Smart Analytics Pro © 2026</div>", unsafe_allow_html=True)
