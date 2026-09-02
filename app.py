@@ -213,7 +213,7 @@ if not st.session_state.logged_in:
         col1, col2, col3 = st.columns([1, 2, 1])
         with col2:
             new_username = st.text_input("👤 اسم المستخدم", key="reg_username")
-            new_name = st.text_input(" الاسم الكامل", key="reg_name")
+            new_name = st.text_input("👤 الاسم الكامل", key="reg_name")
             new_email = st.text_input("📧 البريد الإلكتروني", key="reg_email")
             new_password = st.text_input("🔑 كلمة المرور", type="password", key="reg_password")
             confirm_password = st.text_input("🔑 تأكيد كلمة المرور", type="password", key="reg_confirm")
@@ -233,9 +233,9 @@ if not st.session_state.logged_in:
                         st.session_state.show_register = False
                         st.rerun()
                     else:
-                        st.error(f" {message}")
+                        st.error(f"❌ {message}")
             
-            if st.button(" لديك حساب؟ دخول", use_container_width=True, type="secondary", key="btn_go_login"):
+            if st.button("🔐 لديك حساب؟ دخول", use_container_width=True, type="secondary", key="btn_go_login"):
                 st.session_state.show_register = False
                 st.rerun()
     else:
@@ -262,7 +262,7 @@ if not st.session_state.logged_in:
                     st.error("❌ اسم المستخدم أو كلمة المرور غير صحيحة")
         
         st.markdown("---")
-        if st.button("📝 ليس لديك حساب؟ سجل الآن", use_container_width=True, type="secondary", key="btn_go_register"):
+        if st.button(" ليس لديك حساب؟ سجل الآن", use_container_width=True, type="secondary", key="btn_go_register"):
             st.session_state.show_register = True
             st.rerun()
         
@@ -292,7 +292,7 @@ def generate_local_ai_insights(df):
         if count > 0:
             pct = round((count / len(df)) * 100, 1)
             if pct > 5:
-                insights.append(f"⚠️ العمود {col} يحتوي على {count} قيمة مفقودة ({pct}%)")
+                insights.append(f"️ العمود {col} يحتوي على {count} قيمة مفقودة ({pct}%)")
 
     if len(numeric_cols) >= 2:
         corr_matrix = df[numeric_cols].corr().abs()
@@ -302,7 +302,7 @@ def generate_local_ai_insights(df):
             top_corr = max_corr.index[0]
             val = round(max_corr.iloc[0], 2)
             if val > 0.7:
-                insights.append(f" ارتباط قوي بين {top_corr[0]} و {top_corr[1]} ({val})")
+                insights.append(f"🔗 ارتباط قوي بين {top_corr[0]} و {top_corr[1]} ({val})")
 
     if len(categorical_cols) >= 1 and len(numeric_cols) >= 1:
         cat_col = categorical_cols[0]
@@ -320,7 +320,7 @@ with st.sidebar:
     if current_user:
         st.markdown(f"""
         <div style="background: rgba(255,255,255,0.2); padding: 20px; border-radius: 16px; text-align: center; margin: 10px 0;">
-            <div style="font-size: 50px; margin-bottom: 10px;"></div>
+            <div style="font-size: 50px; margin-bottom: 10px;">👤</div>
             <div style="font-size: 18px; font-weight: bold; color: white;">{current_user['name']}</div>
             <div style="font-size: 14px; color: rgba(255,255,255,0.9); margin-top: 5px;">⭐ {current_user['plan']} Plan</div>
             <div style="font-size: 12px; color: rgba(255,255,255,0.8); margin-top: 5px;">{current_user['email']}</div>
@@ -336,7 +336,7 @@ with st.sidebar:
         "data_import": "📥 استيراد البيانات",
         "eda": "📊 التحليل الاستكشافي",
         "diagnostic": "🔍 التحليل التشخيصي",
-        "predictive": "🔮 التحليل التنبؤي",
+        "predictive": " التحليل التنبؤي",
         "prescriptive": "💡 التحليل الإرشادي",
         "ai_chat": "🤖 المساعد الذكي",
         "export": "💾 التصدير"
@@ -349,7 +349,7 @@ with st.sidebar:
     
     st.markdown("---")
     
-    if st.button(" تسجيل الخروج", use_container_width=True, key="btn_logout"):
+    if st.button("🚪 تسجيل الخروج", use_container_width=True, key="btn_logout"):
         st.session_state.logged_in = False
         st.session_state.current_user = None
         st.session_state.page = "home"
@@ -389,7 +389,7 @@ if st.session_state.page == "home":
     with col2:
         st.markdown("""
         <div class="feature-card">
-            <div style="font-size: 60px; margin-bottom: 20px;"></div>
+            <div style="font-size: 60px; margin-bottom: 20px;">🔍</div>
             <h3>التحليل التشخيصي</h3>
             <p>اكتشف الأنماط والشذوذ في بياناتك</p>
         </div>
@@ -416,11 +416,11 @@ if st.session_state.page == "home":
     if current_user:
         st.markdown(f"""
         <div class="success-box" style="margin-top: 40px;">
-            <h3> مرحباً {current_user['name']}!</h3>
+            <h3>👋 مرحباً {current_user['name']}!</h3>
             <p><strong>ابدأ الآن في 3 خطوات بسيطة:</strong></p>
             <ol>
                 <li>📥 اضغط على "استيراد البيانات" من القائمة الجانبية</li>
-                <li> ارفع ملف CSV أو Excel</li>
+                <li>📊 ارفع ملف CSV أو Excel</li>
                 <li>🎯 استكشف التحليلات والرؤى الذكية</li>
             </ol>
         </div>
@@ -449,7 +449,7 @@ elif st.session_state.page == "pricing":
             "popular": True
         },
         {
-            "name": "🏢 Enterprise",
+            "name": " Enterprise",
             "price": "$99",
             "period": "/شهر",
             "features": ["كل مميزات Pro", "تخزين غير محدود", "White-Label كامل", "API Access", "مدير حساب مخصص", "SLA مضمون 99.9%"],
@@ -488,7 +488,7 @@ elif st.session_state.page == "pricing":
             st.button("اشترك الآن", use_container_width=True, type=plan["button_type"], key=f"sub_{i}")
 
 elif st.session_state.page == "data_import":
-    st.markdown("## 📥 استيراد البيانات")
+    st.markdown("##  استيراد البيانات")
     st.markdown("ارفع ملف CSV أو Excel لبدء التحليل")
     
     uploaded_file = st.file_uploader("اختر ملف CSV أو Excel", type=['csv', 'xlsx', 'xls'])
@@ -507,8 +507,8 @@ elif st.session_state.page == "data_import":
             with col3:
                 st.metric("حجم الملف", f"{uploaded_file.size / 1024:.2f} KB")
             with col4:
-                numeric_cols = df.select_dtypes(include=[np.number]).shape[1]
-                st.metric("الأعمدة الرقمية", numeric_cols)
+                numeric_cols_count = df.select_dtypes(include=[np.number]).shape[1]
+                st.metric("الأعمدة الرقمية", numeric_cols_count)
             
             st.markdown("### معاينة البيانات")
             st.dataframe(df.head(10), use_container_width=True)
@@ -522,14 +522,37 @@ elif st.session_state.page == "eda":
     else:
         df = st.session_state.df
         
+        # تعريف المتغيرات الأساسية مرة واحدة
+        numeric_cols = df.select_dtypes(include=[np.number]).columns.tolist()
+        categorical_cols = df.select_dtypes(include=['object', 'category']).columns.tolist()
+        
+        # تعريف DataFrames للتقرير
+        dtype_df = pd.DataFrame({
+            'العمود': df.columns,
+            'النوع': [str(dtype) for dtype in df.dtypes]
+        })
+        
+        info_df = pd.DataFrame({
+            'العمود': df.columns,
+            'النوع': [str(dtype) for dtype in df.dtypes],
+            'القيم الفريدة': [df[col].nunique() for col in df.columns],
+            'القيم المفقودة': [df[col].isnull().sum() for col in df.columns],
+            'نسبة المفقودين': [f"{(df[col].isnull().sum()/len(df))*100:.2f}%" for col in df.columns]
+        })
+        
+        # تعريف مصفوفة الارتباط
+        corr_matrix = None
+        if len(numeric_cols) >= 2:
+            corr_matrix = df[numeric_cols].corr()
+        
         # ====== التبويبات الرئيسية ======
         tab1, tab2, tab3, tab4, tab5, tab6 = st.tabs([
             "📋 نظرة عامة",
             "📈 التوزيعات",
             "🔗 الارتباطات",
-            " التحليل الفئوي",
+            "📊 التحليل الفئوي",
             "🔍 القيم المتطرفة",
-            " التقرير"
+            "📄 التقرير"
         ])
         
         # ====== التبويب 1: نظرة عامة ======
@@ -551,10 +574,6 @@ elif st.session_state.page == "eda":
             col1, col2 = st.columns(2)
             with col1:
                 st.markdown("#### أنواع البيانات")
-                dtype_df = pd.DataFrame({
-                    'النوع': df.dtypes,
-                    'العدد': df.dtypes.value_counts()
-                })
                 st.dataframe(dtype_df, use_container_width=True)
             
             with col2:
@@ -565,21 +584,12 @@ elif st.session_state.page == "eda":
             st.markdown("#### الإحصائيات الوصفية الشاملة")
             st.dataframe(df.describe(), use_container_width=True)
             
-            with st.expander(" معلومات تفصيلية عن الأعمدة"):
-                info_df = pd.DataFrame({
-                    'العمود': df.columns,
-                    'النوع': [str(dtype) for dtype in df.dtypes],
-                    'القيم الفريدة': [df[col].nunique() for col in df.columns],
-                    'القيم المفقودة': [df[col].isnull().sum() for col in df.columns],
-                    'نسبة المفقودين': [f"{(df[col].isnull().sum()/len(df))*100:.2f}%" for col in df.columns]
-                })
+            with st.expander("📊 معلومات تفصيلية عن الأعمدة"):
                 st.dataframe(info_df, use_container_width=True)
         
         # ====== التبويب 2: التوزيعات ======
         with tab2:
             st.markdown("### 📈 تحليل التوزيعات")
-            
-            numeric_cols = df.select_dtypes(include=[np.number]).columns.tolist()
             
             if numeric_cols:
                 st.markdown("#### توزيع المتغيرات الرقمية")
@@ -596,9 +606,12 @@ elif st.session_state.page == "eda":
                     st.plotly_chart(fig_hist, use_container_width=True)
                 
                 with col2:
-                    fig_kde = px.density_curve(df, x=selected_col,
-                                              title=f"منحنى الكثافة لـ {selected_col}",
-                                              color_discrete_sequence=['#764ba2'])
+                    fig_kde = px.histogram(df, x=selected_col,
+                                          title=f"منحنى الكثافة لـ {selected_col}",
+                                          histnorm='probability density',
+                                          nbins=50,
+                                          color_discrete_sequence=['#764ba2'])
+                    fig_kde.update_layout(showlegend=False)
                     st.plotly_chart(fig_kde, use_container_width=True)
                 
                 fig_box = px.box(df, y=selected_col,
@@ -623,16 +636,16 @@ elif st.session_state.page == "eda":
         with tab3:
             st.markdown("### 🔗 تحليل الارتباطات")
             
-            if len(numeric_cols) >= 2:
+            if corr_matrix is not None:
                 st.markdown("#### مصفوفة الارتباط")
                 
                 corr_method = st.selectbox("طريقة الحساب", 
                                          ['pearson', 'spearman', 'kendall'],
                                          key="eda_corr_method")
                 
-                corr_matrix = df[numeric_cols].corr(method=corr_method)
+                corr_matrix_calc = df[numeric_cols].corr(method=corr_method)
                 
-                fig_heatmap = px.imshow(corr_matrix,
+                fig_heatmap = px.imshow(corr_matrix_calc,
                                        text_auto=".2f",
                                        aspect="auto",
                                        title="مصفوفة الارتباط",
@@ -645,12 +658,12 @@ elif st.session_state.page == "eda":
                 st.markdown("#### أقوى الارتباطات")
                 
                 corr_pairs = []
-                for i in range(len(corr_matrix.columns)):
-                    for j in range(i+1, len(corr_matrix.columns)):
+                for i in range(len(corr_matrix_calc.columns)):
+                    for j in range(i+1, len(corr_matrix_calc.columns)):
                         corr_pairs.append({
-                            'المتغير 1': corr_matrix.columns[i],
-                            'المتغير 2': corr_matrix.columns[j],
-                            'الارتباط': corr_matrix.iloc[i, j]
+                            'المتغير 1': corr_matrix_calc.columns[i],
+                            'المتغير 2': corr_matrix_calc.columns[j],
+                            'الارتباط': corr_matrix_calc.iloc[i, j]
                         })
                 
                 corr_df = pd.DataFrame(corr_pairs)
@@ -684,8 +697,6 @@ elif st.session_state.page == "eda":
         # ====== التبويب 4: التحليل الفئوي ======
         with tab4:
             st.markdown("### 📊 التحليل الفئوي")
-            
-            categorical_cols = df.select_dtypes(include=['object', 'category']).columns.tolist()
             
             if categorical_cols:
                 selected_cat = st.selectbox("اختر المتغير الفئوي", categorical_cols, key="eda_cat_col")
@@ -723,7 +734,7 @@ elif st.session_state.page == "eda":
         with tab5:
             st.markdown("### 🔍 كشف القيم المتطرفة")
             
-            if len(numeric_cols) >= 1:
+            if numeric_cols:
                 outlier_col = st.selectbox("اختر العمود", numeric_cols, key="eda_outlier_col")
                 
                 method = st.selectbox("طريقة الكشف", 
@@ -816,7 +827,7 @@ elif st.session_state.page == "eda":
                         {df.describe().to_html()}
                         
                         <h2>📊 أنواع البيانات</h2>
-                        {dtype_df.to_html()}
+                        {dtype_df.to_html(index=False)}
                         
                         <div class="footer">
                             <p>تم إنشاء هذا التقرير تلقائياً بواسطة Smart Analytics Pro</p>
@@ -829,19 +840,20 @@ elif st.session_state.page == "eda":
                 
                 if report_format == "HTML":
                     st.download_button(
-                        label=" تحميل تقرير HTML",
+                        label="📥 تحميل تقرير HTML",
                         data=html_report,
                         file_name=f"EDA_Report_{datetime.now().strftime('%Y%m%d_%H%M%S')}.html",
                         mime="text/html",
                         use_container_width=True
                     )
-                
                 else:
                     output = io.BytesIO()
                     with pd.ExcelWriter(output, engine='xlsxwriter') as writer:
                         df.describe().to_excel(writer, sheet_name='Descriptive Stats')
-                        dtype_df.to_excel(writer, sheet_name='Data Types', index=True)
+                        dtype_df.to_excel(writer, sheet_name='Data Types', index=False)
                         info_df.to_excel(writer, sheet_name='Column Info', index=False)
+                        if corr_matrix is not None:
+                            corr_matrix.to_excel(writer, sheet_name='Correlation Matrix')
                     
                     st.download_button(
                         label="📥 تحميل تقرير Excel",
@@ -883,7 +895,7 @@ elif st.session_state.page == "predictive":
         if len(numeric_cols) >= 2:
             target = st.selectbox("الهدف", numeric_cols, key="pred_target")
             feature = st.selectbox("الميزة", [c for c in numeric_cols if c != target], key="pred_feat")
-            if st.button(" تنبؤ", key="btn_pred"):
+            if st.button("🚀 تنبؤ", key="btn_pred"):
                 X = st.session_state.df[[feature]].values
                 y = st.session_state.df[target].values
                 X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2, random_state=42)
@@ -903,7 +915,7 @@ elif st.session_state.page == "prescriptive":
     else:
         insights = generate_local_ai_insights(st.session_state.df)
         for insight in insights:
-            if "⚠️" in insight:
+            if "️" in insight:
                 st.warning(insight)
             elif "🔗" in insight:
                 st.info(insight)
@@ -933,12 +945,12 @@ elif st.session_state.page == "export":
     st.markdown("## 💾 التصدير")
     
     if st.session_state.df is None:
-        st.warning("️ ارفع بيانات أولاً")
+        st.warning("⚠️ ارفع بيانات أولاً")
     else:
         col1, col2 = st.columns(2)
         with col1:
             csv = st.session_state.df.to_csv(index=False).encode('utf-8-sig')
-            st.download_button(" CSV", csv, "data.csv", "text/csv", key="dl_csv")
+            st.download_button("📥 CSV", csv, "data.csv", "text/csv", key="dl_csv")
         with col2:
             output = io.BytesIO()
             with pd.ExcelWriter(output, engine='xlsxwriter') as writer:
