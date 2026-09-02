@@ -292,8 +292,8 @@ with st.sidebar:
 
 if st.session_state.page == "home":
     st.markdown("""
-    <div style="text-align: center; padding: 40px;">
-        <h1>Smart Analytics Pro</h1>
+""", unsafe_allow_html=True)   
+    <h1>Smart Analytics Pro</h1>
         <p style="font-size: 20px; color: #4a5568;">منصة احترافية لتحليل البيانات والذكاء الاصطناعي</p>
     </div>
     """)
