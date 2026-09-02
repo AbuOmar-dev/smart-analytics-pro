@@ -298,382 +298,216 @@ elif st.session_state.page == "eda":
     else:
         numeric_cols = df.select_dtypes(include=[np.number]).columns.tolist()
         
-        # الفلتر الذكي - استبعاد SKU والتواريخ
+        # الفلتر الذكي
         bad_keywords = ['sku', 'id', 'code', 'date', 'time', 'timestamp', 'رقم', 'كود', 'تاريخ']
         valid_categorical = []
         for col in df.select_dtypes(include=['object', 'category']).columns:
             n_unique = df[col].nunique()
-            # استبعاد لو يحتوي على كلمات محظورة أو لو كل القيم فريدة
             if any(kw in col.lower() for kw in bad_keywords) or (n_unique > len(df) * 0.5):
                 continue
             valid_categorical.append(col)
         
         st.markdown("### 📥 تصدير التقارير")
         if st.button("📥 تصدير تقرير EDA شامل واحترافي (HTML)", type="primary", key="btn_export_comprehensive_eda"):
-            with st.spinner("جاري إنشاء التقرير الشامل... يرجى الانتظار"):
+            with st.spinner("جاري إنشاء التقرير..."):
                 try:
-                    html_parts = []
+                    # بناء HTML كامل يدوياً
+                    html = []
                     
-                    # بداية HTML
-                    html_parts.append(f"""<!DOCTYPE html>
+                    html.append("""<!DOCTYPE html>
 <html dir="rtl" lang="ar">
 <head>
-    <meta charset="UTF-8">
-    <title>تقرير التحليل الاستكشافي الشامل - Smart Analytics Pro</title>
-    <script src="https://cdn.plot.ly/plotly-2.27.0.min.js"></script>
-    <style>
-        @import url('https://fonts.googleapis.com/css2?family=Cairo:wght@400;600;700&display=swap');
-        * {{ box-sizing: border-box; margin: 0; padding: 0; }}
-        body {{ 
-            font-family: 'Cairo', 'Segoe UI', Tahoma, sans-serif; 
-            background: #f8f9fa; 
-            color: #2d3748; 
-            line-height: 1.6;
-            direction: rtl;
-            text-align: right;
-        }}
-        .header {{ 
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); 
-            color: white; 
-            padding: 50px 20px; 
-            text-align: center; 
-        }}
-        .header h1 {{ margin: 0; font-size: 36px; font-weight: 700; }}
-        .header p {{ margin: 10px 0 0; opacity: 0.9; font-size: 16px; }}
-        .container {{ max-width: 1100px; margin: 40px auto; padding: 0 20px; }}
-        .summary-cards {{ 
-            display: grid; 
-            grid-template-columns: repeat(4, 1fr); 
-            gap: 20px; 
-            margin-bottom: 40px; 
-        }}
-        .card {{ 
-            background: white; 
-            padding: 25px; 
-            border-radius: 16px; 
-            box-shadow: 0 4px 15px rgba(0,0,0,0.05); 
-            text-align: center; 
-            border-top: 4px solid #667eea; 
-        }}
-        .card .label {{ color: #718096; font-size: 14px; margin-bottom: 8px; font-weight: 600; }}
-        .card .value {{ color: #2d3748; font-size: 28px; font-weight: 700; }}
-        .section {{ 
-            background: white; 
-            padding: 35px; 
-            border-radius: 16px; 
-            box-shadow: 0 4px 15px rgba(0,0,0,0.05); 
-            margin-bottom: 30px; 
-        }}
-        .section h2 {{ 
-            color: #764ba2; 
-            border-bottom: 3px solid #e2e8f0; 
-            padding-bottom: 15px; 
-            margin-top: 0; 
-            font-size: 24px; 
-        }}
-        .section h3 {{ 
-            color: #667eea; 
-            margin-top: 30px; 
-            margin-bottom: 15px; 
-            border-right: 5px solid #764ba2; 
-            padding-right: 15px; 
-            font-size: 20px; 
-        }}
-        table.data-table {{ 
-            width: 100%; 
-            border-collapse: collapse; 
-            margin: 20px 0; 
-            font-size: 14px; 
-            border-radius: 8px; 
-            overflow: hidden; 
-            box-shadow: 0 2px 8px rgba(0,0,0,0.05); 
-        }}
-        table.data-table thead {{ background: #667eea; }}
-        table.data-table th {{ 
-            color: white; 
-            padding: 14px 12px; 
-            text-align: right; 
-            font-weight: 600; 
-        }}
-        table.data-table td {{ 
-            padding: 12px; 
-            border-bottom: 1px solid #edf2f7; 
-            text-align: right; 
-        }}
-        table.data-table tbody tr:nth-child(even) {{ background: #f7fafc; }}
-        table.data-table tbody tr:hover {{ background: #edf2f7; }}
-        .chart-box {{ 
-            margin: 25px 0; 
-            background: white; 
-            padding: 20px; 
-            border-radius: 12px; 
-            border: 1px solid #e2e8f0; 
-            box-shadow: 0 2px 8px rgba(0,0,0,0.03); 
-            min-height: 380px; 
-        }}
-        .insight-box {{ 
-            background: #fffaf0; 
-            border-right: 5px solid #ed8936; 
-            padding: 20px; 
-            margin: 20px 0; 
-            border-radius: 8px; 
-            color: #c05621; 
-            font-size: 15px; 
-        }}
-        .insight-box strong {{ color: #9c4221; }}
-        .footer {{ 
-            text-align: center; 
-            padding: 40px; 
-            color: #718096; 
-            background: white; 
-            margin-top: 40px; 
-            border-top: 1px solid #e2e8f0; 
-        }}
-        @media print {{
-            @page {{ size: A4; margin: 1cm; }}
-            body {{ background: white; }}
-            .header, th {{ -webkit-print-color-adjust: exact; print-color-adjust: exact; }}
-            .section {{ break-inside: avoid; page-break-inside: avoid; }}
-            .chart-box {{ break-inside: avoid; page-break-inside: avoid; }}
-            table.data-table {{ break-inside: avoid; page-break-inside: avoid; }}
-        }}
-    </style>
+<meta charset="UTF-8">
+<title>تقرير التحليل الاستكشافي الشامل</title>
+<script src="https://cdn.plot.ly/plotly-2.27.0.min.js"></script>
+<style>
+* { box-sizing: border-box; margin: 0; padding: 0; }
+body { font-family: 'Segoe UI', Tahoma, Arial, sans-serif; background: #f5f7fa; color: #2d3748; line-height: 1.6; direction: rtl; text-align: right; }
+.header { background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; padding: 50px 20px; text-align: center; }
+.header h1 { font-size: 36px; margin-bottom: 10px; }
+.header p { opacity: 0.9; font-size: 16px; }
+.container { max-width: 1200px; margin: 40px auto; padding: 0 20px; }
+.cards { display: flex; gap: 20px; margin-bottom: 40px; flex-wrap: wrap; }
+.card { background: white; padding: 25px; border-radius: 12px; box-shadow: 0 4px 15px rgba(0,0,0,0.08); flex: 1; min-width: 200px; text-align: center; border-top: 4px solid #667eea; }
+.card .label { color: #718096; font-size: 14px; margin-bottom: 8px; }
+.card .value { color: #2d3748; font-size: 28px; font-weight: bold; }
+.section { background: white; padding: 35px; border-radius: 12px; box-shadow: 0 4px 15px rgba(0,0,0,0.08); margin-bottom: 30px; }
+.section h2 { color: #764ba2; border-bottom: 3px solid #e2e8f0; padding-bottom: 15px; margin-bottom: 25px; font-size: 24px; }
+.section h3 { color: #667eea; margin-top: 30px; margin-bottom: 15px; border-right: 5px solid #764ba2; padding-right: 15px; font-size: 20px; }
+table { width: 100%; border-collapse: collapse; margin: 20px 0; font-size: 14px; }
+thead { background: #667eea; }
+th { color: white; padding: 14px 12px; text-align: right; font-weight: 600; }
+td { padding: 12px; border-bottom: 1px solid #e2e8f0; text-align: right; }
+tbody tr:nth-child(even) { background: #f7fafc; }
+tbody tr:hover { background: #edf2f7; }
+.chart { margin: 25px 0; padding: 20px; background: white; border-radius: 12px; border: 1px solid #e2e8f0; min-height: 400px; }
+.note { background: #fffaf0; border-right: 5px solid #ed8936; padding: 20px; margin: 20px 0; border-radius: 8px; color: #c05621; }
+.footer { text-align: center; padding: 40px; color: #718096; background: white; margin-top: 40px; border-top: 1px solid #e2e8f0; }
+@media print { .header, thead { -webkit-print-color-adjust: exact; print-color-adjust: exact; } .section { break-inside: avoid; } .chart { break-inside: avoid; } }
+</style>
 </head>
 <body>
-    <div class="header">
-        <h1>📊 تقرير التحليل الاستكشافي الشامل</h1>
-        <p>Smart Analytics Pro - {datetime.now().strftime('%Y-%m-%d %H:%M')}</p>
-    </div>
-    <div class="container">
-        <div class="summary-cards">
-            <div class="card"><div class="label">إجمالي السجلات</div><div class="value">{len(df):,}</div></div>
-            <div class="card"><div class="label">إجمالي الأعمدة</div><div class="value">{len(df.columns)}</div></div>
-            <div class="card"><div class="label">الأعمدة الرقمية</div><div class="value">{len(numeric_cols)}</div></div>
-            <div class="card"><div class="label">الأعمدة الفئوية الصالحة</div><div class="value">{len(valid_categorical)}</div></div>
-        </div>""")
+<div class="header">
+<h1> تقرير التحليل الاستكشافي الشامل</h1>
+<p>Smart Analytics Pro - """)
+                    
+                    html.append(datetime.now().strftime('%Y-%m-%d %H:%M'))
+                    html.append("""</p>
+</div>
+<div class="container">
+<div class="cards">
+<div class="card"><div class="label">إجمالي السجلات</div><div class="value">""")
+                    html.append(f"{len(df):,}")
+                    html.append("""</div></div>
+<div class="card"><div class="label">إجمالي الأعمدة</div><div class="value">""")
+                    html.append(str(len(df.columns)))
+                    html.append("""</div></div>
+<div class="card"><div class="label">الأعمدة الرقمية</div><div class="value">""")
+                    html.append(str(len(numeric_cols)))
+                    html.append("""</div></div>
+<div class="card"><div class="label">الأعمدة الفئوية الصالحة</div><div class="value">""")
+                    html.append(str(len(valid_categorical)))
+                    html.append("""</div></div>
+</div>""")
                     
                     # 1. الجداول التكرارية
-                    html_parts.append("<div class='section'><h2>📋 1. الجداول التكرارية (أعلى 15 قيمة)</h2>")
-                    html_parts.append("<p style='color:#718096; font-size:15px; margin-bottom:20px;'>تم استبعاد المعرفات الفريدة وأعمدة التواريخ تلقائياً.</p>")
+                    html.append("""<div class="section">
+<h2>📋 1. الجداول التكرارية (أعلى 15 قيمة)</h2>
+<p style="color:#718096; margin-bottom:20px;">تم استبعاد المعرفات الفريدة وأعمدة التواريخ تلقائياً.</p>""")
                     
                     for col in valid_categorical:
-                        try:
-                            freq = df[col].value_counts().head(15).reset_index()
-                            freq.columns = ['القيمة', 'التكرار']
-                            freq['النسبة المئوية %'] = (freq['التكرار'] / len(df) * 100).round(2)
-                            
-                            n_unique = df[col].nunique()
-                            note = f" (معروض أعلى 15 من أصل {n_unique} قيمة)" if n_unique > 15 else ""
-                            
-                            # بناء الجدول HTML يدوياً
-                            html_parts.append(f"<h3>📊 {col}</h3>")
-                            html_parts.append('<table class="data-table"><thead><tr><th>القيمة</th><th>التكرار</th><th>النسبة المئوية %</th></tr></thead><tbody>')
-                            for _, row in freq.iterrows():
-                                html_parts.append(f"<tr><td>{row['القيمة']}</td><td>{row['التكرار']}</td><td>{row['النسبة المئوية %']}</td></tr>")
-                            html_parts.append('</tbody></table>')
-                            
-                            # بناء الرسم البياني
-                            fig = px.bar(freq, x='القيمة', y='التكرار', title=f"توزيع {col}{note}", 
-                                        color='التكرار', color_continuous_scale='Blues')
-                            fig.update_layout(
-                                height=350, xaxis_tickangle=-45, margin=dict(t=50, b=60, l=40, r=40),
-                                title={'x': 0, 'xanchor': 'right', 'font': {'family': 'Cairo', 'size': 16}},
-                                xaxis={'title': '', 'tickangle': -45},
-                                yaxis={'title': 'التكرار'}
-                            )
-                            html_parts.append('<div class="chart-box">')
-                            html_parts.append(fig.to_html(full_html=False, include_plotlyjs='cdn'))
-                            html_parts.append('</div>')
-                        except Exception as e:
-                            html_parts.append(f"<div class='insight-box'>️ خطأ في {col}: {str(e)}</div>")
+                        freq = df[col].value_counts().head(15).reset_index()
+                        freq.columns = ['القيمة', 'التكرار']
+                        freq['النسبة %'] = (freq['التكرار'] / len(df) * 100).round(2)
+                        
+                        html.append(f"<h3> {col}</h3>")
+                        html.append("<table><thead><tr><th>القيمة</th><th>التكرار</th><th>النسبة %</th></tr></thead><tbody>")
+                        for _, row in freq.iterrows():
+                            html.append(f"<tr><td>{row['القيمة']}</td><td>{row['التكرار']}</td><td>{row['النسبة %']}</td></tr>")
+                        html.append("</tbody></table>")
+                        
+                        # رسم بياني
+                        fig = px.bar(freq, x='القيمة', y='التكرار', title=f"توزيع {col}", color='التكرار', color_continuous_scale='Blues')
+                        fig.update_layout(height=350, xaxis_tickangle=-45)
+                        html.append('<div class="chart">')
+                        html.append(fig.to_html(full_html=False, include_plotlyjs='cdn'))
+                        html.append('</div>')
                     
-                    # ملاحظة الأعمدة المستبعدة
-                    skipped_cols = [col for col in df.select_dtypes(include=['object', 'category']).columns if col not in valid_categorical]
-                    if skipped_cols:
-                        html_parts.append(f"""
-                        <div class="insight-box">
-                            ℹ️ <strong>ملاحظة:</strong> تم استبعاد الأعمدة التالية: <strong>{', '.join(skipped_cols)}</strong>
-                        </div>""")
+                    skipped = [c for c in df.select_dtypes(include=['object', 'category']).columns if c not in valid_categorical]
+                    if skipped:
+                        html.append(f'<div class="note">ℹ️ <strong>ملاحظة:</strong> تم استبعاد: <strong>{", ".join(skipped)}</strong></div>')
                     
-                    html_parts.append("</div>")
+                    html.append("</div>")
                     
                     # 2. المقاييس الإحصائية
-                    html_parts.append("<div class='section'><h2> 2. المقاييس الإحصائية الشاملة</h2>")
+                    html.append("""<div class="section">
+<h2>📈 2. المقاييس الإحصائية الشاملة</h2>""")
+                    
                     for col in numeric_cols:
-                        try:
-                            cd = df[col].dropna()
-                            if len(cd) == 0: continue
-                            
-                            m, med, s = cd.mean(), cd.median(), cd.std()
-                            v = cd.var()
-                            min_val, max_val = cd.min(), cd.max()
-                            q1, q2, q3 = cd.quantile(0.25), cd.quantile(0.50), cd.quantile(0.75)
-                            iqr = q3 - q1
-                            sk, ku = cd.skew(), cd.kurtosis()
-                            
-                            sk_i = "منحرف بشدة لليمين" if sk > 1 else ("منحرف لليمين" if sk > 0.5 else ("متماثل تقريباً" if sk > -0.5 else ("منحرف لليسار" if sk > -1 else "منحرف بشدة لليسار")))
-                            ku_i = "مدبب (ذيول ثقيلة)" if ku > 3 else ("متوسط التفلطح" if ku > 0 else "مفلطح (ذيول خفيفة)")
-                            
-                            html_parts.append(f"<h3>📊 {col}</h3>")
-                            
-                            # جدول الإحصائيات
-                            html_parts.append('<table class="data-table"><thead><tr><th>المتوسط</th><th>الوسيط</th><th>الانحراف المعياري</th><th>التباين</th><th>الحد الأدنى</th><th>Q1</th><th>Q2</th><th>Q3</th><th>الحد الأقصى</th><th>IQR</th></tr></thead><tbody>')
-                            html_parts.append(f"<tr><td>{m:.2f}</td><td>{med:.2f}</td><td>{s:.2f}</td><td>{v:.2f}</td><td>{min_val:.2f}</td><td>{q1:.2f}</td><td>{q2:.2f}</td><td>{q3:.2f}</td><td>{max_val:.2f}</td><td>{iqr:.2f}</td></tr>")
-                            html_parts.append('</tbody></table>')
-                            
-                            # جدول الانحناء والتفلطح
-                            html_parts.append(f'<table class="data-table" style="width: 50%; margin-top: 10px;"><thead><tr><th>الانحناء (Skewness)</th><th>التفسير</th><th>التفلطح (Kurtosis)</th><th>التفسير</th></tr></thead><tbody>')
-                            html_parts.append(f"<tr><td>{sk:.2f}</td><td style='color:#48bb78; font-weight:bold;'>{sk_i}</td><td>{ku:.2f}</td><td style='color:#48bb78; font-weight:bold;'>{ku_i}</td></tr>")
-                            html_parts.append('</tbody></table>')
-                            
-                            # الرسم البياني
-                            fig = px.histogram(df, x=col, nbins=30, title=f"توزيع {col}", color_discrete_sequence=['#667eea'])
-                            fig.add_vline(x=m, line_dash="dash", line_color="#e53e3e", annotation_text=f"المتوسط: {m:.1f}")
-                            fig.update_layout(
-                                height=350, margin=dict(t=50, b=40, l=40, r=40),
-                                title={'x': 0, 'xanchor': 'right', 'font': {'family': 'Cairo', 'size': 16}},
-                                xaxis={'title': col},
-                                yaxis={'title': 'التكرار'}
-                            )
-                            html_parts.append('<div class="chart-box">')
-                            html_parts.append(fig.to_html(full_html=False, include_plotlyjs='cdn'))
-                            html_parts.append('</div>')
-                        except Exception as e:
-                            html_parts.append(f"<div class='insight-box'>️ خطأ في {col}: {str(e)}</div>")
-                    html_parts.append("</div>")
+                        cd = df[col].dropna()
+                        if len(cd) == 0: continue
+                        
+                        m, med, s = cd.mean(), cd.median(), cd.std()
+                        v = cd.var()
+                        min_v, max_v = cd.min(), cd.max()
+                        q1, q2, q3 = cd.quantile(0.25), cd.quantile(0.50), cd.quantile(0.75)
+                        iqr = q3 - q1
+                        sk, ku = cd.skew(), cd.kurtosis()
+                        
+                        sk_i = "متماثل" if abs(sk) < 0.5 else ("منحرف لليمين" if sk > 0 else "منحرف لليسار")
+                        ku_i = "مدبب" if ku > 0 else "مفلطح"
+                        
+                        html.append(f"<h3>📊 {col}</h3>")
+                        html.append("<table><thead><tr><th>المتوسط</th><th>الوسيط</th><th>الانحراف المعياري</th><th>التباين</th><th>الحد الأدنى</th><th>Q1</th><th>Q2</th><th>Q3</th><th>الحد الأقصى</th><th>IQR</th></tr></thead><tbody>")
+                        html.append(f"<tr><td>{m:.2f}</td><td>{med:.2f}</td><td>{s:.2f}</td><td>{v:.2f}</td><td>{min_v:.2f}</td><td>{q1:.2f}</td><td>{q2:.2f}</td><td>{q3:.2f}</td><td>{max_v:.2f}</td><td>{iqr:.2f}</td></tr>")
+                        html.append("</tbody></table>")
+                        
+                        html.append("<table><thead><tr><th>الانحناء</th><th>التفسير</th><th>التفلطح</th><th>التفسير</th></tr></thead><tbody>")
+                        html.append(f"<tr><td>{sk:.2f}</td><td>{sk_i}</td><td>{ku:.2f}</td><td>{ku_i}</td></tr>")
+                        html.append("</tbody></table>")
+                        
+                        fig = px.histogram(df, x=col, nbins=30, title=f"توزيع {col}", color_discrete_sequence=['#667eea'])
+                        fig.add_vline(x=m, line_dash="dash", line_color="red", annotation_text=f"Mean: {m:.1f}")
+                        fig.update_layout(height=350)
+                        html.append('<div class="chart">')
+                        html.append(fig.to_html(full_html=False, include_plotlyjs='cdn'))
+                        html.append('</div>')
+                    
+                    html.append("</div>")
                     
                     # 3. Box Plots
-                    html_parts.append("<div class='section'><h2>📦 3. مخططات الصندوق (Box Plots)</h2>")
-                    for col in numeric_cols:
-                        try:
-                            q1, q2, q3 = df[col].quantile(0.25), df[col].quantile(0.50), df[col].quantile(0.75)
-                            iqr = q3 - q1
-                            lower, upper = q1 - 1.5 * iqr, q3 + 1.5 * iqr
-                            outliers_count = len(df[(df[col] < lower) | (df[col] > upper)])
-                            
-                            html_parts.append(f"<h3>📦 {col}</h3>")
-                            
-                            # جدول Box Plot
-                            html_parts.append('<table class="data-table"><thead><tr><th>Min</th><th>Q1</th><th>Median</th><th>Q3</th><th>Max</th><th>IQR</th><th style="color:#e53e3e;">Outliers</th></tr></thead><tbody>')
-                            html_parts.append(f"<tr><td>{df[col].min():.2f}</td><td>{q1:.2f}</td><td>{q2:.2f}</td><td>{q3:.2f}</td><td>{df[col].max():.2f}</td><td>{iqr:.2f}</td><td style='color:#e53e3e; font-weight:bold;'>{outliers_count}</td></tr>")
-                            html_parts.append('</tbody></table>')
-                            
-                            # الرسم البياني
-                            fig = px.box(df, y=col, title=f"Box Plot - {col}", color_discrete_sequence=['#667eea'])
-                            fig.update_layout(
-                                height=350, margin=dict(t=50, b=40, l=40, r=40),
-                                title={'x': 0, 'xanchor': 'right', 'font': {'family': 'Cairo', 'size': 16}},
-                                yaxis={'title': col}
-                            )
-                            html_parts.append('<div class="chart-box">')
-                            html_parts.append(fig.to_html(full_html=False, include_plotlyjs='cdn'))
-                            html_parts.append('</div>')
-                        except Exception as e:
-                            html_parts.append(f"<div class='insight-box'>⚠️ خطأ في {col}: {str(e)}</div>")
-                    html_parts.append("</div>")
+                    html.append("""<div class="section">
+<h2>📦 3. مخططات الصندوق (Box Plots)</h2>""")
                     
-                    # نهاية HTML
-                    html_parts.append("""
-        <div class="footer">
-            <p>تم إنشاء هذا التقرير تلقائياً بواسطة <b>Smart Analytics Pro</b></p>
-            <p>© 2026 جميع الحقوق محفوظة</p>
-        </div>
-    </div>
+                    for col in numeric_cols:
+                        q1, q2, q3 = df[col].quantile(0.25), df[col].quantile(0.50), df[col].quantile(0.75)
+                        iqr = q3 - q1
+                        outliers = len(df[(df[col] < q1 - 1.5*iqr) | (df[col] > q3 + 1.5*iqr)])
+                        
+                        html.append(f"<h3>📦 {col}</h3>")
+                        html.append("<table><thead><tr><th>Min</th><th>Q1</th><th>Median</th><th>Q3</th><th>Max</th><th>IQR</th><th>Outliers</th></tr></thead><tbody>")
+                        html.append(f"<tr><td>{df[col].min():.2f}</td><td>{q1:.2f}</td><td>{q2:.2f}</td><td>{q3:.2f}</td><td>{df[col].max():.2f}</td><td>{iqr:.2f}</td><td>{outliers}</td></tr>")
+                        html.append("</tbody></table>")
+                        
+                        fig = px.box(df, y=col, title=f"Box Plot - {col}", color_discrete_sequence=['#667eea'])
+                        fig.update_layout(height=350)
+                        html.append('<div class="chart">')
+                        html.append(fig.to_html(full_html=False, include_plotlyjs='cdn'))
+                        html.append('</div>')
+                    
+                    html.append("</div>")
+                    
+                    html.append("""<div class="footer">
+<p>تم إنشاء هذا التقرير بواسطة <b>Smart Analytics Pro</b></p>
+<p>© 2026 جميع الحقوق محفوظة</p>
+</div>
+</div>
 </body>
 </html>""")
                     
-                    final_html = "".join(html_parts)
+                    final_html = "".join(html)
                     
                     st.download_button(
-                        label="📥 تحميل التقرير الشامل (HTML)",
+                        label="📥 تحميل التقرير",
                         data=final_html,
-                        file_name=f"Comprehensive_EDA_Report_{datetime.now().strftime('%Y%m%d_%H%M%S')}.html",
-                        mime="text/html",
-                        use_container_width=True
+                        file_name=f"EDA_Report_{datetime.now().strftime('%Y%m%d_%H%M%S')}.html",
+                        mime="text/html"
                     )
-                    st.success("✅ تم إنشاء التقرير بنجاح! افتحه في Chrome للطباعة كـ PDF (Ctrl+P)")
+                    st.success("✅ تم إنشاء التقرير!")
                     
                 except Exception as e:
-                    st.error(f"❌ خطأ حرج: {str(e)}")
+                    st.error(f"❌ خطأ: {str(e)}")
                     st.exception(e)
         
         st.markdown("---")
         
-        # واجهة العرض التفاعلية
-        tab1, tab2, tab3, tab4 = st.tabs(["📋 الجداول التكرارية", " التصور البياني", "📊 المقاييس الإحصائية", "📦 Box Plots"])
+        tab1, tab2, tab3, tab4 = st.tabs([" الجداول", "📈 التصور", "📊 الإحصائيات", "📦 Box Plots"])
         
         with tab1:
-            st.markdown("### 📋 الجداول التكرارية")
             if valid_categorical:
-                selected_cat = st.selectbox("اختر المتغير الفئوي", valid_categorical, key="eda_freq_cat")
-                freq_table = df[selected_cat].value_counts().reset_index()
-                freq_table.columns = ['القيمة', 'التكرار']
-                freq_table['النسبة المئوية %'] = (freq_table['التكرار'] / len(df) * 100).round(2)
-                st.dataframe(freq_table.head(20), use_container_width=True)
-                fig = px.bar(freq_table.head(20), x='القيمة', y='التكرار', title=f"أعلى 20 قيمة لـ {selected_cat}", color='التكرار', color_continuous_scale='Blues')
-                fig.update_layout(title={'x': 0, 'xanchor': 'right'})
-                st.plotly_chart(fig, use_container_width=True)
+                col = st.selectbox("اختر العمود", valid_categorical)
+                freq = df[col].value_counts().head(20).reset_index()
+                freq.columns = ['القيمة', 'التكرار']
+                st.dataframe(freq, use_container_width=True)
             else:
-                st.info("لا توجد متغيرات فئوية صالحة.")
-                
+                st.info("لا توجد متغيرات فئوية")
+        
         with tab2:
-            st.markdown("### 📈 التصور البياني")
-            viz_type = st.selectbox("اختر نوع التصور", ["Histogram", "Bar Chart", "Heatmap"], key="eda_viz_type")
-            if viz_type == "Histogram" and numeric_cols:
-                col = st.selectbox("اختر العمود", numeric_cols, key="eda_hist_col")
-                fig = px.histogram(df, x=col, nbins=30, title=f"توزيع {col}", color_discrete_sequence=['#667eea'])
-                fig.update_layout(title={'x': 0, 'xanchor': 'right'})
+            if numeric_cols:
+                col = st.selectbox("اختر العمود", numeric_cols)
+                fig = px.histogram(df, x=col, nbins=30)
                 st.plotly_chart(fig, use_container_width=True)
-            elif viz_type == "Bar Chart" and valid_categorical:
-                col = st.selectbox("اختر العمود", valid_categorical, key="eda_bar_col")
-                vc = df[col].value_counts().head(15)
-                fig = px.bar(x=vc.values, y=vc.index, orientation='h', title=f"توزيع {col}", color=vc.values, color_continuous_scale='Blues')
-                fig.update_layout(title={'x': 0, 'xanchor': 'right'})
-                st.plotly_chart(fig, use_container_width=True)
-            elif viz_type == "Heatmap" and len(numeric_cols) >= 2:
-                fig = px.imshow(df[numeric_cols].corr(), text_auto=".2f", aspect="auto", title="مصفوفة الارتباط", color_continuous_scale="RdBu_r", zmin=-1, zmax=1)
-                fig.update_layout(height=600, title={'x': 0, 'xanchor': 'right'})
-                st.plotly_chart(fig, use_container_width=True)
-                
+        
         with tab3:
-            st.markdown("### 📊 المقاييس الإحصائية")
             if numeric_cols:
-                selected_stat_col = st.selectbox("اختر العمود الرقمي", numeric_cols, key="eda_stat_col")
-                cd = df[selected_stat_col].dropna()
-                c1, c2, c3, c4 = st.columns(4)
-                with c1: st.metric("المتوسط", f"{cd.mean():.2f}")
-                with c2: st.metric("الوسيط", f"{cd.median():.2f}")
-                with c3: st.metric("الانحراف المعياري", f"{cd.std():.2f}")
-                with c4: st.metric("التباين", f"{cd.var():.2f}")
-                st.markdown("---")
-                sk, ku = cd.skew(), cd.kurtosis()
-                sk_i = "متماثل" if abs(sk) < 0.5 else ("منحرف لليمين" if sk > 0 else "منحرف لليسار")
-                ku_i = "مدبب" if ku > 0 else "مفلطح"
-                c1, c2 = st.columns(2)
-                with c1: st.info(f"**الانحناء:** {sk:.4f} - {sk_i}")
-                with c2: st.info(f"**التفلطح:** {ku:.4f} - {ku_i}")
-                fig = px.histogram(df, x=selected_stat_col, nbins=30, title=f"توزيع {selected_stat_col}", color_discrete_sequence=['#667eea'])
-                fig.add_vline(x=cd.mean(), line_dash="dash", line_color="red", annotation_text=f"Mean: {cd.mean():.2f}")
-                fig.update_layout(title={'x': 0, 'xanchor': 'right'})
-                st.plotly_chart(fig, use_container_width=True)
-            else:
-                st.info("لا توجد متغيرات رقمية")
-                
+                col = st.selectbox("اختر العمود", numeric_cols)
+                st.write(df[col].describe())
+        
         with tab4:
-            st.markdown("### 📦 Box Plots")
             if numeric_cols:
-                selected_box = st.selectbox("اختر العمود", numeric_cols, key="eda_box_col")
-                fig_box = px.box(df, y=selected_box, title=f"Box Plot لـ {selected_box}", color_discrete_sequence=['#667eea'])
-                fig_box.update_layout(title={'x': 0, 'xanchor': 'right'})
-                st.plotly_chart(fig_box, use_container_width=True)
-                if len(numeric_cols) <= 10:
-                    st.markdown("#### Box Plot لجميع المتغيرات الرقمية")
-                    df_melted = df[numeric_cols].melt(var_name='المتغير', value_name='القيمة')
-                    fig_box_all = px.box(df_melted, x='المتغير', y='القيمة', title="Box Plot لجميع المتغيرات", color='المتغير')
-                    fig_box_all.update_layout(height=500, title={'x': 0, 'xanchor': 'right'})
-                    st.plotly_chart(fig_box_all, use_container_width=True)
-            else:
-                st.info("لا توجد متغيرات رقمية")
+                col = st.selectbox("اختر العمود", numeric_cols)
+                fig = px.box(df, y=col)
+                st.plotly_chart(fig, use_container_width=True)
 
 elif st.session_state.page == "diagnostic":           
     st.markdown("## 🔍 التحليل التشخيصي")
