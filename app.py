@@ -288,9 +288,8 @@ elif st.session_state.page == "summary":
 
 # ==============================================================================
 # ==================== صفحة التحليل الاستكشافي (EDA) ===========================
-# ==============================================================================
 elif st.session_state.page == "eda":
-    st.markdown("##  التحليل الاستكشافي المتقدم (EDA)")
+    st.markdown("## 📊 التحليل الاستكشافي المتقدم (EDA)")
     st.markdown("---")
     df = st.session_state.df_clean if st.session_state.df_clean is not None else st.session_state.df
     
@@ -299,7 +298,7 @@ elif st.session_state.page == "eda":
     else:
         numeric_cols = df.select_dtypes(include=[np.number]).columns.tolist()
         
-        # الفلتر الذكي
+        # الفلتر الذكي الصارم
         bad_keywords = ['sku', 'id', 'code', 'date', 'time', 'timestamp', 'رقم', 'كود', 'تاريخ']
         valid_categorical = []
         for col in df.select_dtypes(include=['object', 'category']).columns:
@@ -308,38 +307,10 @@ elif st.session_state.page == "eda":
                 continue
             valid_categorical.append(col)
         
-        st.markdown("###  تصدير التقارير")
+        st.markdown("### 📥 تصدير التقارير")
         if st.button("📥 تصدير تقرير EDA شامل واحترافي (HTML)", type="primary", key="btn_export_comprehensive_eda"):
-            with st.spinner("جاري إنشاء التقرير الشامل..."):
+            with st.spinner("جاري إنشاء التقرير الشامل... يرجى الانتظار (قد يستغرق بضع ثوانٍ)"):
                 try:
-                    # دالة مساعدة لبناء جدول HTML يدوياً
-                    def build_html_table(df_table):
-                        html = '<table class="data-table"><thead><tr>'
-                        for col in df_table.columns:
-                            html += f'<th>{col}</th>'
-                        html += '</tr></thead><tbody>'
-                        for _, row in df_table.iterrows():
-                            html += '<tr>'
-                            for val in row:
-                                html += f'<td>{val}</td>'
-                            html += '</tr>'
-                        html += '</tbody></table>'
-                        return html
-                    
-                    # دالة مساعدة لبناء رسم Plotly كـ HTML
-                    def build_plotly_chart(fig):
-                        chart_div_id = f"chart_{id(fig)}"
-                        fig_json = fig.to_json()
-                        return f'''
-                        <div class="chart-box">
-                            <div id="{chart_div_id}" class="plotly-chart"></div>
-                            <script>
-                                var figure = {fig_json};
-                                Plotly.newPlot('{chart_div_id}', figure.data, figure.layout, {{responsive: true}});
-                            </script>
-                        </div>
-                        '''
-                    
                     html_parts = []
                     html_parts.append(f"""
                     <!DOCTYPE html>
@@ -347,7 +318,6 @@ elif st.session_state.page == "eda":
                     <head>
                         <meta charset="UTF-8">
                         <title>تقرير التحليل الاستكشافي الشامل - Smart Analytics Pro</title>
-                        <script src="https://cdn.plot.ly/plotly-2.27.0.min.js"></script>
                         <style>
                             @import url('https://fonts.googleapis.com/css2?family=Cairo:wght@400;600;700&display=swap');
                             * {{ box-sizing: border-box; margin: 0; padding: 0; }}
@@ -408,8 +378,7 @@ elif st.session_state.page == "eda":
                             }}
                             table.data-table {{ 
                                 width: 100%; 
-                                border-collapse: separate; 
-                                border-spacing: 0; 
+                                border-collapse: collapse; 
                                 margin: 20px 0; 
                                 font-size: 14px; 
                                 border-radius: 8px; 
@@ -439,7 +408,6 @@ elif st.session_state.page == "eda":
                                 box-shadow: 0 2px 8px rgba(0,0,0,0.03); 
                                 min-height: 380px; 
                             }}
-                            .plotly-chart {{ width: 100%; height: 350px; }}
                             .insight-box {{ 
                                 background: #fffaf0; 
                                 border-right: 5px solid #ed8936; 
@@ -507,8 +475,10 @@ elif st.session_state.page == "eda":
                             )
                             
                             html_parts.append(f"<h3>📊 {col}</h3>")
-                            html_parts.append(build_html_table(freq))
-                            html_parts.append(build_plotly_chart(fig))
+                            # استخدام to_html المدمج في Pandas (مضمون 100%)
+                            html_parts.append(freq.to_html(index=False, classes='data-table', border=0))
+                            # تضمين Plotly JS بالكامل داخل الملف لضمان العمل بدون إنترنت
+                            html_parts.append(fig.to_html(full_html=False, include_plotlyjs=True))
                         except Exception as e:
                             html_parts.append(f"<div class='insight-box'>⚠️ خطأ في {col}: {str(e)}</div>")
                     
@@ -516,7 +486,7 @@ elif st.session_state.page == "eda":
                     if skipped_cols:
                         html_parts.append(f"""
                         <div class="insight-box">
-                            ️ <strong>ملاحظة:</strong> تم استبعاد الأعمدة التالية: <strong>{', '.join(skipped_cols)}</strong>
+                            ℹ️ <strong>ملاحظة:</strong> تم استبعاد الأعمدة التالية تلقائياً لأنها تعتبر معرفات فريدة أو تواريخ: <strong>{', '.join(skipped_cols)}</strong>
                         </div>
                         """)
                     
@@ -549,19 +519,19 @@ elif st.session_state.page == "eda":
                             )
                             
                             stats_table = pd.DataFrame({
-                                'المتوسط': [f"{m:.2f}"], 'الوسيط': [f"{med:.2f}"], 'الانحراف المعياري': [f"{s:.2f}"],
-                                'التباين': [f"{v:.2f}"], 'الحد الأدنى': [f"{min_val:.2f}"], 'Q1': [f"{q1:.2f}"],
-                                'Q2': [f"{q2:.2f}"], 'Q3': [f"{q3:.2f}"], 'الحد الأقصى': [f"{max_val:.2f}"], 'IQR': [f"{iqr:.2f}"]
+                                'المقياس': ['المتوسط', 'الوسيط', 'الانحراف المعياري', 'التباين', 'الحد الأدنى', 'Q1', 'Q2', 'Q3', 'الحد الأقصى', 'IQR'],
+                                'القيمة': [f"{m:.2f}", f"{med:.2f}", f"{s:.2f}", f"{v:.2f}", f"{min_val:.2f}", f"{q1:.2f}", f"{q2:.2f}", f"{q3:.2f}", f"{max_val:.2f}", f"{iqr:.2f}"]
                             })
                             skew_table = pd.DataFrame({
-                                'الانحناء (Skewness)': [f"{sk:.2f}"], 'التفسير': [sk_i],
-                                'التفلطح (Kurtosis)': [f"{ku:.2f}"], 'التفسير': [ku_i]
+                                'المقياس': ['الانحناء (Skewness)', 'التفلطح (Kurtosis)'],
+                                'القيمة': [f"{sk:.2f}", f"{ku:.2f}"],
+                                'التفسير': [sk_i, ku_i]
                             })
                             
-                            html_parts.append(f"<h3> {col}</h3>")
-                            html_parts.append(build_html_table(stats_table))
-                            html_parts.append(build_html_table(skew_table))
-                            html_parts.append(build_plotly_chart(fig))
+                            html_parts.append(f"<h3>📊 {col}</h3>")
+                            html_parts.append(stats_table.to_html(index=False, classes='data-table', border=0))
+                            html_parts.append(skew_table.to_html(index=False, classes='data-table', border=0))
+                            html_parts.append(fig.to_html(full_html=False, include_plotlyjs=True))
                         except Exception as e:
                             html_parts.append(f"<div class='insight-box'>⚠️ خطأ في {col}: {str(e)}</div>")
                     html_parts.append("</div>")
@@ -583,14 +553,13 @@ elif st.session_state.page == "eda":
                             )
                             
                             box_table = pd.DataFrame({
-                                'Min': [f"{df[col].min():.2f}"], 'Q1': [f"{q1:.2f}"], 'Median': [f"{q2:.2f}"],
-                                'Q3': [f"{q3:.2f}"], 'Max': [f"{df[col].max():.2f}"], 'IQR': [f"{iqr:.2f}"],
-                                'Outliers': [outliers_count]
+                                'المقياس': ['Min', 'Q1', 'Median', 'Q3', 'Max', 'IQR', 'Outliers'],
+                                'القيمة': [f"{df[col].min():.2f}", f"{q1:.2f}", f"{q2:.2f}", f"{q3:.2f}", f"{df[col].max():.2f}", f"{iqr:.2f}", str(outliers_count)]
                             })
                             
                             html_parts.append(f"<h3>📦 {col}</h3>")
-                            html_parts.append(build_html_table(box_table))
-                            html_parts.append(build_plotly_chart(fig))
+                            html_parts.append(box_table.to_html(index=False, classes='data-table', border=0))
+                            html_parts.append(fig.to_html(full_html=False, include_plotlyjs=True))
                         except Exception as e:
                             html_parts.append(f"<div class='insight-box'>⚠️ خطأ في {col}: {str(e)}</div>")
                     html_parts.append("</div>")
@@ -614,16 +583,16 @@ elif st.session_state.page == "eda":
                         mime="text/html",
                         use_container_width=True
                     )
-                    st.success("✅ تم إنشاء التقرير! افتحه في Chrome للطباعة كـ PDF (Ctrl+P)")
+                    st.success("✅ تم إنشاء التقرير بنجاح! افتحه في Chrome. للطباعة كـ PDF: Ctrl+P → Save as PDF")
                     
                 except Exception as e:
-                    st.error(f"❌ خطأ: {str(e)}")
+                    st.error(f"❌ خطأ حرج: {str(e)}")
                     st.exception(e)
         
         st.markdown("---")
         
-        # واجهة العرض التفاعلية
-        tab1, tab2, tab3, tab4 = st.tabs([" الجداول التكرارية", "📈 التصور البياني", "📊 المقاييس الإحصائية", "📦 Box Plots"])
+        # واجهة العرض التفاعلية داخل التطبيق
+        tab1, tab2, tab3, tab4 = st.tabs(["📋 الجداول التكرارية", "📈 التصور البياني", "📊 المقاييس الإحصائية", "📦 Box Plots"])
         
         with tab1:
             st.markdown("### 📋 الجداول التكرارية")
@@ -659,7 +628,7 @@ elif st.session_state.page == "eda":
                 st.plotly_chart(fig, use_container_width=True)
                 
         with tab3:
-            st.markdown("###  المقاييس الإحصائية")
+            st.markdown("### 📊 المقاييس الإحصائية")
             if numeric_cols:
                 selected_stat_col = st.selectbox("اختر العمود الرقمي", numeric_cols, key="eda_stat_col")
                 cd = df[selected_stat_col].dropna()
@@ -696,8 +665,7 @@ elif st.session_state.page == "eda":
                     fig_box_all.update_layout(height=500, title={'x': 0, 'xanchor': 'right'})
                     st.plotly_chart(fig_box_all, use_container_width=True)
             else:
-                st.info("لا توجد متغيرات رقمية")
-elif st.session_state.page == "diagnostic":
+                st.info("لا توجد متغيرات رقمية")elif st.session_state.page == "diagnostic":
     st.markdown("## 🔍 التحليل التشخيصي")
     df = st.session_state.df_clean if st.session_state.df_clean is not None else st.session_state.df
     if df is None: st.warning("⚠️ ارفع بيانات أولاً")
