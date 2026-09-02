@@ -794,580 +794,234 @@ elif st.session_state.page == "eda":
     if df is None:
         st.warning("⚠️ يرجى رفع البيانات أولاً")
     else:
+        import plotly.io as pio
+        pio.templates.default = "plotly_white"
+        
         numeric_cols = df.select_dtypes(include=[np.number]).columns.tolist()
         categorical_cols = df.select_dtypes(include=['object', 'category']).columns.tolist()
         
-        tab1, tab2, tab3, tab4 = st.tabs([
-            "📋 الجداول التكرارية",
-            "📈 التصور البياني",
-            "📊 المقاييس الإحصائية",
-            "📦 Box Plots"
-        ])
+        # ==================== زر التصدير الشامل المضمون ====================
+        st.markdown("### 📥 تصدير التقارير")
+        if st.button("📥 تصدير تقرير EDA شامل واحترافي (HTML)", type="primary", key="btn_export_comprehensive_eda"):
+            with st.spinner("جاري إنشاء التقرير الشامل... يرجى الانتظار"):
+                try:
+                    html_parts = []
+                    html_parts.append(f"""
+                    <!DOCTYPE html>
+                    <html dir="rtl" lang="ar">
+                    <head>
+                        <meta charset="UTF-8">
+                        <title>تقرير التحليل الاستكشافي الشامل - Smart Analytics Pro</title>
+                        <script src="https://cdn.plot.ly/plotly-latest.min.js"></script>
+                        <style>
+                            body {{ font-family: 'Segoe UI', Tahoma, Arial, sans-serif; background: #f8f9fa; color: #333; margin: 0; padding: 0; }}
+                            .header {{ background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; padding: 40px; text-align: center; }}
+                            .header h1 {{ margin: 0; font-size: 32px; }}
+                            .container {{ max-width: 1100px; margin: 30px auto; padding: 0 20px; }}
+                            .summary-cards {{ display: grid; grid-template-columns: repeat(4, 1fr); gap: 15px; margin-bottom: 30px; }}
+                            .card {{ background: white; padding: 20px; border-radius: 10px; box-shadow: 0 2px 8px rgba(0,0,0,0.05); text-align: center; }}
+                            .card .label {{ color: #718096; font-size: 13px; margin-bottom: 5px; }}
+                            .card .value {{ color: #667eea; font-size: 24px; font-weight: bold; }}
+                            .section {{ background: white; padding: 25px; border-radius: 10px; box-shadow: 0 2px 8px rgba(0,0,0,0.05); margin-bottom: 25px; page-break-inside: avoid; }}
+                            .section h2 {{ color: #764ba2; border-bottom: 2px solid #667eea; padding-bottom: 10px; margin-top: 0; }}
+                            .section h3 {{ color: #667eea; margin-top: 25px; border-right: 4px solid #764ba2; padding-right: 10px; }}
+                            table {{ width: 100%; border-collapse: collapse; margin: 15px 0; font-size: 14px; }}
+                            th {{ background: #667eea; color: white; padding: 10px; text-align: right; }}
+                            td {{ padding: 8px; border-bottom: 1px solid #e2e8f0; text-align: right; }}
+                            tr:nth-child(even) {{ background: #f7fafc; }}
+                            .chart-box {{ margin: 20px 0; background: white; padding: 10px; border-radius: 8px; border: 1px solid #e2e8f0; }}
+                            .footer {{ text-align: center; padding: 30px; color: #718096; background: white; margin-top: 30px; border-top: 1px solid #e2e8f0; }}
+                        </style>
+                    </head>
+                    <body>
+                        <div class="header">
+                            <h1>📊 تقرير التحليل الاستكشافي الشامل</h1>
+                            <p>Smart Analytics Pro - {datetime.now().strftime('%Y-%m-%d %H:%M')}</p>
+                        </div>
+                        <div class="container">
+                            <div class="summary-cards">
+                                <div class="card"><div class="label">إجمالي السجلات</div><div class="value">{len(df):,}</div></div>
+                                <div class="card"><div class="label">إجمالي الأعمدة</div><div class="value">{len(df.columns)}</div></div>
+                                <div class="card"><div class="label">الأعمدة الرقمية</div><div class="value">{len(numeric_cols)}</div></div>
+                                <div class="card"><div class="label">الأعمدة الفئوية</div><div class="value">{len(categorical_cols)}</div></div>
+                            </div>
+                    """)
+                    
+                    # 1. الجداول التكرارية (محدودة بـ 15 قيمة فقط لحل مشكلة SKU)
+                    html_parts.append("<div class='section'><h2>📋 1. الجداول التكرارية (أعلى 15 قيمة)</h2>")
+                    html_parts.append("<p style='color:#718096; font-size:14px;'>تم عرض أعلى 15 قيمة فقط للمتغيرات ذات التكرارات الكثيرة لضمان وضوح التقرير وعمليته.</p>")
+                    
+                    for col in categorical_cols:
+                        freq = df[col].value_counts().head(15).reset_index()
+                        freq.columns = ['القيمة', 'التكرار']
+                        freq['النسبة المئوية %'] = (freq['التكرار'] / len(df) * 100).round(2)
+                        
+                        total_unique = df[col].nunique()
+                        note = f" (معروض أعلى 15 من أصل {total_unique} قيمة)" if total_unique > 15 else ""
+                        
+                        fig = px.bar(freq, x='القيمة', y='التكرار', title=f"توزيع {col}{note}", color='التكرار', color_continuous_scale='Blues')
+                        fig.update_layout(height=350, xaxis_tickangle=-45, margin=dict(t=40, b=40))
+                        
+                        html_parts.append(f"<h3>📊 {col}</h3>")
+                        html_parts.append(freq.to_html(index=False, classes='table'))
+                        html_parts.append(f"<div class='chart-box'>{pio.to_html(fig, full_html=False, include_plotlyjs='cdn')}</div>")
+                    
+                    html_parts.append("</div>")
+                    
+                    # 2. المقاييس الإحصائية والرسوم
+                    html_parts.append("<div class='section'><h2>📈 2. المقاييس الإحصائية والتوزيع</h2>")
+                    for col in numeric_cols:
+                        cd = df[col].dropna()
+                        if len(cd) == 0: continue
+                        
+                        m, med, s = cd.mean(), cd.median(), cd.std()
+                        q1, q3 = cd.quantile(0.25), cd.quantile(0.75)
+                        sk, ku = cd.skew(), cd.kurtosis()
+                        
+                        sk_i = "منحرف بشدة لليمين" if sk > 1 else ("منحرف لليمين" if sk > 0.5 else ("متماثل" if sk > -0.5 else ("منحرف لليسار" if sk > -1 else "منحرف بشدة لليسار")))
+                        ku_i = "مدبب (ذيول ثقيلة)" if ku > 3 else ("متوسط" if ku > 0 else "مفلطح (ذيول خفيفة)")
+                        
+                        fig = px.histogram(df, x=col, nbins=30, title=f"توزيع {col}", color_discrete_sequence=['#667eea'])
+                        fig.add_vline(x=m, line_dash="dash", line_color="red", annotation_text=f"Mean: {m:.1f}")
+                        fig.update_layout(height=300, margin=dict(t=40, b=40))
+                        
+                        html_parts.append(f"""
+                        <h3>📊 {col}</h3>
+                        <table>
+                            <tr><th>المتوسط</th><th>الوسيط</th><th>الانحراف المعياري</th><th>Q1</th><th>Q3</th><th>الانحناء</th><th>التفسير</th></tr>
+                            <tr><td>{m:.2f}</td><td>{med:.2f}</td><td>{s:.2f}</td><td>{q1:.2f}</td><td>{q3:.2f}</td><td>{sk:.2f}</td><td style='color:#48bb78; font-weight:bold;'>{sk_i}</td></tr>
+                        </table>
+                        <div class='chart-box'>{pio.to_html(fig, full_html=False, include_plotlyjs='cdn')}</div>
+                        """)
+                    html_parts.append("</div>")
+                    
+                    # 3. مخططات الصندوق
+                    html_parts.append("<div class='section'><h2>📦 3. مخططات الصندوق (Box Plots)</h2>")
+                    for col in numeric_cols:
+                        q1, q2, q3 = df[col].quantile(0.25), df[col].quantile(0.50), df[col].quantile(0.75)
+                        iqr = q3 - q1
+                        lower, upper = q1 - 1.5 * iqr, q3 + 1.5 * iqr
+                        outliers_count = len(df[(df[col] < lower) | (df[col] > upper)])
+                        
+                        fig = px.box(df, y=col, title=f"Box Plot - {col}", color_discrete_sequence=['#667eea'])
+                        fig.update_layout(height=350, margin=dict(t=40, b=40))
+                        
+                        html_parts.append(f"""
+                        <h3>📦 {col}</h3>
+                        <table>
+                            <tr><th>Min</th><th>Q1</th><th>Median</th><th>Q3</th><th>Max</th><th>IQR</th><th>Outliers</th></tr>
+                            <tr><td>{df[col].min():.2f}</td><td>{q1:.2f}</td><td>{q2:.2f}</td><td>{q3:.2f}</td><td>{df[col].max():.2f}</td><td>{iqr:.2f}</td><td style='color:#f56565; font-weight:bold;'>{outliers_count}</td></tr>
+                        </table>
+                        <div class='chart-box'>{pio.to_html(fig, full_html=False, include_plotlyjs='cdn')}</div>
+                        """)
+                    html_parts.append("</div>")
+                    
+                    html_parts.append("""
+                            <div class="footer">
+                                <p>تم إنشاء هذا التقرير تلقائياً بواسطة <b>Smart Analytics Pro</b></p>
+                                <p>© 2026 جميع الحقوق محفوظة</p>
+                            </div>
+                        </div>
+                    </body>
+                    </html>
+                    """)
+                    
+                    final_html = "".join(html_parts)
+                    
+                    st.download_button(
+                        label="📥 تحميل التقرير الشامل (HTML)",
+                        data=final_html,
+                        file_name=f"Comprehensive_EDA_Report_{datetime.now().strftime('%Y%m%d_%H%M%S')}.html",
+                        mime="text/html",
+                        use_container_width=True
+                    )
+                    st.success("✅ تم إنشاء التقرير بنجاح! افتحه في المتصفح لرؤية الرسوم التفاعلية.")
+                    
+                except Exception as e:
+                    st.error(f"❌ حدث خطأ أثناء إنشاء التقرير: {str(e)}")
+                    st.exception(e) # لطباعة تفاصيل الخطأ للمساعدة في التصحيح
         
-        # ===== التبويب 1: الجداول التكرارية =====
+        st.markdown("---")
+        
+        # ==================== واجهة العرض التفاعلية داخل التطبيق ====================
+        tab1, tab2, tab3, tab4 = st.tabs(["📋 الجداول التكرارية", "📈 التصور البياني", "📊 المقاييس الإحصائية", "📦 Box Plots"])
+        
         with tab1:
             st.markdown("### 📋 الجداول التكرارية")
-            st.markdown("---")
-            
             if categorical_cols:
-                st.markdown("#### الجداول التكرارية للمتغيرات الفئوية")
                 selected_cat = st.selectbox("اختر المتغير الفئوي", categorical_cols, key="eda_freq_cat")
+                freq_table = df[selected_cat].value_counts().reset_index()
+                freq_table.columns = ['القيمة', 'التكرار']
+                freq_table['النسبة المئوية %'] = (freq_table['التكرار'] / len(df) * 100).round(2)
                 
-                if selected_cat:
-                    freq_table = df[selected_cat].value_counts().reset_index()
-                    freq_table.columns = ['القيمة', 'التكرار']
-                    freq_table['النسبة المئوية'] = (freq_table['التكرار'] / len(df) * 100).round(2)
-                    freq_table['النسبة التراكمية'] = freq_table['النسبة المئوية'].cumsum().round(2)
-                    
-                    st.dataframe(freq_table, use_container_width=True)
-                    
-                    fig = px.bar(freq_table, x='القيمة', y='التكرار',
-                               title=f"التكرارات لـ {selected_cat}",
-                               color='التكرار',
-                               color_continuous_scale='Blues')
-                    st.plotly_chart(fig, use_container_width=True)
+                # عرض أعلى 20 فقط في الواجهة لتجنب بطء التطبيق
+                st.dataframe(freq_table.head(20), use_container_width=True)
+                
+                fig = px.bar(freq_table.head(20), x='القيمة', y='التكرار', title=f"أعلى 20 قيمة لـ {selected_cat}", color='التكرار', color_continuous_scale='Blues')
+                st.plotly_chart(fig, use_container_width=True)
             else:
                 st.info("لا توجد متغيرات فئوية في البيانات")
-            
-            st.markdown("---")
-            
-            if numeric_cols:
-                st.markdown("#### الجداول التكرارية للمتغيرات الرقمية (مجمعات)")
-                selected_num = st.selectbox("اختر المتغير الرقمي", numeric_cols, key="eda_freq_num")
                 
-                if selected_num:
-                    bins = st.slider("عدد المجموعات", 5, 30, 10, key="eda_bins")
-                    df_temp = df.copy()
-                    df_temp['مجموعة'] = pd.cut(df_temp[selected_num], bins=bins)
-                    
-                    freq_num = df_temp['مجموعة'].value_counts().sort_index().reset_index()
-                    freq_num.columns = ['المجموعة', 'التكرار']
-                    freq_num['النسبة المئوية'] = (freq_num['التكرار'] / len(df) * 100).round(2)
-                    
-                    st.dataframe(freq_num, use_container_width=True)
-            else:
-                st.info("لا توجد متغيرات رقمية في البيانات")
-            
-            st.markdown("---")
-            
-            if st.button("📥 تصدير تقرير الجداول التكرارية", type="primary", key="btn_export_freq"):
-                html_report = f"""
-                <!DOCTYPE html>
-                <html dir="rtl" lang="ar">
-                <head>
-                    <meta charset="UTF-8">
-                    <title>تقرير الجداول التكرارية - Smart Analytics Pro</title>
-                    <style>
-                        body {{ font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; margin: 40px; background: #f5f7fa; }}
-                        .container {{ max-width: 1200px; margin: 0 auto; background: white; padding: 40px; border-radius: 10px; box-shadow: 0 2px 10px rgba(0,0,0,0.1); }}
-                        h1 {{ color: #667eea; text-align: center; }}
-                        h2 {{ color: #764ba2; border-bottom: 2px solid #667eea; padding-bottom: 10px; margin-top: 30px; }}
-                        table {{ width: 100%; border-collapse: collapse; margin: 20px 0; }}
-                        th, td {{ padding: 12px; text-align: right; border: 1px solid #ddd; }}
-                        th {{ background: #667eea; color: white; }}
-                        tr:nth-child(even) {{ background: #f5f7fa; }}
-                        .footer {{ text-align: center; margin-top: 40px; color: #718096; }}
-                    </style>
-                </head>
-                <body>
-                    <div class="container">
-                        <h1> تقرير الجداول التكرارية</h1>
-                        <p style="text-align: center; color: #718096;">Smart Analytics Pro - {datetime.now().strftime('%Y-%m-%d %H:%M')}</p>
-                        <h2>المتغيرات الفئوية</h2>
-                """
-                
-                for cat_col in categorical_cols[:5]:
-                    freq_t = df[cat_col].value_counts().reset_index()
-                    freq_t.columns = ['القيمة', 'التكرار']
-                    freq_t['النسبة المئوية'] = (freq_t['التكرار'] / len(df) * 100).round(2)
-                    html_report += f"<h3>{cat_col}</h3>{freq_t.to_html(index=False)}"
-                
-                html_report += f"""
-                        <div class="footer">
-                            <p>تم إنشاء هذا التقرير تلقائياً بواسطة Smart Analytics Pro</p>
-                            <p>© 2026 جميع الحقوق محفوظة</p>
-                        </div>
-                    </div>
-                </body>
-                </html>
-                """
-                
-                st.download_button(
-                    label="📥 تحميل تقرير HTML",
-                    data=html_report,
-                    file_name=f"Frequency_Tables_Report_{datetime.now().strftime('%Y%m%d_%H%M%S')}.html",
-                    mime="text/html",
-                    use_container_width=True
-                )
-                st.success("✅ تم إنشاء التقرير بنجاح!")
-        
-        # ===== التبويب 2: التصور البياني =====
         with tab2:
             st.markdown("### 📈 التصور البياني")
-            st.markdown("---")
-            
-            viz_type = st.selectbox("اختر نوع التصور", 
-                                   ["Histogram", "Bar Chart", "Pie Chart", "Scatter Plot", "Line Chart", "Heatmap"],
-                                   key="eda_viz_type")
+            viz_type = st.selectbox("اختر نوع التصور", ["Histogram", "Bar Chart", "Pie Chart", "Scatter Plot", "Heatmap"], key="eda_viz_type")
             
             if viz_type == "Histogram" and numeric_cols:
                 col = st.selectbox("اختر العمود", numeric_cols, key="eda_hist_col")
-                bins = st.slider("عدد الأعمدة", 10, 100, 30, key="eda_hist_bins")
-                
-                fig = px.histogram(df, x=col, nbins=bins,
-                                 title=f"توزيع {col}",
-                                 color_discrete_sequence=['#667eea'])
+                fig = px.histogram(df, x=col, nbins=30, title=f"توزيع {col}", color_discrete_sequence=['#667eea'])
                 st.plotly_chart(fig, use_container_width=True)
-            
             elif viz_type == "Bar Chart" and categorical_cols:
                 col = st.selectbox("اختر العمود", categorical_cols, key="eda_bar_col")
-                top_n = st.slider("عدد القيم العليا", 5, 50, 10, key="eda_bar_top")
-                
-                value_counts = df[col].value_counts().head(top_n)
-                fig = px.bar(x=value_counts.values, y=value_counts.index,
-                           orientation='h',
-                           title=f"توزيع {col}",
-                           color=value_counts.values,
-                           color_continuous_scale='Blues')
+                vc = df[col].value_counts().head(15)
+                fig = px.bar(x=vc.values, y=vc.index, orientation='h', title=f"توزيع {col}", color=vc.values, color_continuous_scale='Blues')
                 st.plotly_chart(fig, use_container_width=True)
-            
-            elif viz_type == "Pie Chart" and categorical_cols:
-                col = st.selectbox("اختر العمود", categorical_cols, key="eda_pie_col")
-                top_n = st.slider("عدد القيم", 3, 20, 10, key="eda_pie_top")
-                
-                value_counts = df[col].value_counts().head(top_n)
-                fig = px.pie(values=value_counts.values, names=value_counts.index,
-                           title=f"النسب المئوية لـ {col}",
-                           hole=0.3)
-                st.plotly_chart(fig, use_container_width=True)
-            
-            elif viz_type == "Scatter Plot" and len(numeric_cols) >= 2:
-                col1_select = st.selectbox("المحور X", numeric_cols, key="eda_scatter_x")
-                col2_select = st.selectbox("المحور Y", [c for c in numeric_cols if c != col1_select], key="eda_scatter_y")
-                color_col = st.selectbox("اللون (اختياري)", ['None'] + categorical_cols, key="eda_scatter_color")
-                
-                if color_col == 'None':
-                    fig = px.scatter(df, x=col1_select, y=col2_select,
-                                   title=f"العلاقة بين {col1_select} و {col2_select}",
-                                   trendline="ols",
-                                   color_discrete_sequence=['#667eea'])
-                else:
-                    fig = px.scatter(df, x=col1_select, y=col2_select,
-                                   color=color_col,
-                                   title=f"العلاقة بين {col1_select} و {col2_select} حسب {color_col}",
-                                   trendline="ols")
-                st.plotly_chart(fig, use_container_width=True)
-            
-            elif viz_type == "Line Chart" and numeric_cols:
-                col = st.selectbox("اختر العمود", numeric_cols, key="eda_line_col")
-                fig = px.line(df, y=col,
-                            title=f"الاتجاه الزمني/التسلسلي لـ {col}",
-                            color_discrete_sequence=['#667eea'])
-                st.plotly_chart(fig, use_container_width=True)
-            
             elif viz_type == "Heatmap" and len(numeric_cols) >= 2:
-                corr_matrix = df[numeric_cols].corr()
-                fig = px.imshow(corr_matrix,
-                               text_auto=".2f",
-                               aspect="auto",
-                               title="مصفوفة الارتباط",
-                               color_continuous_scale="RdBu_r",
-                               zmin=-1, zmax=1)
+                fig = px.imshow(df[numeric_cols].corr(), text_auto=".2f", aspect="auto", title="مصفوفة الارتباط", color_continuous_scale="RdBu_r", zmin=-1, zmax=1)
                 fig.update_layout(height=600)
                 st.plotly_chart(fig, use_container_width=True)
-            
-            st.markdown("---")
-            
-            if st.button("📥 تصدير تقرير التصور البياني", type="primary", key="btn_export_viz"):
-                html_report = f"""
-                <!DOCTYPE html>
-                <html dir="rtl" lang="ar">
-                <head>
-                    <meta charset="UTF-8">
-                    <title>تقرير التصور البياني - Smart Analytics Pro</title>
-                    <style>
-                        body {{ font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; margin: 40px; background: #f5f7fa; }}
-                        .container {{ max-width: 1200px; margin: 0 auto; background: white; padding: 40px; border-radius: 10px; box-shadow: 0 2px 10px rgba(0,0,0,0.1); }}
-                        h1 {{ color: #667eea; text-align: center; }}
-                        h2 {{ color: #764ba2; border-bottom: 2px solid #667eea; padding-bottom: 10px; margin-top: 30px; }}
-                        .footer {{ text-align: center; margin-top: 40px; color: #718096; }}
-                    </style>
-                </head>
-                <body>
-                    <div class="container">
-                        <h1>📈 تقرير التصور البياني</h1>
-                        <p style="text-align: center; color: #718096;">Smart Analytics Pro - {datetime.now().strftime('%Y-%m-%d %H:%M')}</p>
-                        <h2>ملخص البيانات</h2>
-                        <p>إجمالي الصفوف: {len(df):,} | إجمالي الأعمدة: {len(df.columns)} | الأعمدة الرقمية: {len(numeric_cols)} | الأعمدة الفئوية: {len(categorical_cols)}</p>
-                        <div class="footer">
-                            <p>تم إنشاء هذا التقرير تلقائياً بواسطة Smart Analytics Pro</p>
-                            <p>© 2026 جميع الحقوق محفوظة</p>
-                        </div>
-                    </div>
-                </body>
-                </html>
-                """
                 
-                st.download_button(
-                    label="📥 تحميل تقرير HTML",
-                    data=html_report,
-                    file_name=f"Visualization_Report_{datetime.now().strftime('%Y%m%d_%H%M%S')}.html",
-                    mime="text/html",
-                    use_container_width=True
-                )
-                st.success("✅ تم إنشاء التقرير بنجاح!")
-        
-        # ===== التبويب 3: المقاييس الإحصائية =====
         with tab3:
             st.markdown("### 📊 المقاييس الإحصائية الشاملة")
-            st.markdown("---")
-            
             if numeric_cols:
                 selected_stat_col = st.selectbox("اختر العمود الرقمي", numeric_cols, key="eda_stat_col")
+                cd = df[selected_stat_col].dropna()
                 
-                if selected_stat_col:
-                    col_data = df[selected_stat_col].dropna()
-                    
-                    st.markdown("#### 1️⃣ مقاييس النزعة المركزية (Measures of Central Tendency)")
-                    
-                    mean_val = col_data.mean()
-                    median_val = col_data.median()
-                    mode_val = col_data.mode().iloc[0] if len(col_data.mode()) > 0 else np.nan
-                    
-                    col1, col2, col3 = st.columns(3)
-                    with col1:
-                        st.markdown(f"""
-                        <div class="readiness-box" style="text-align: center;">
-                            <div style="font-size: 14px; color: #718096;">المتوسط (Mean)</div>
-                            <div style="font-size: 24px; font-weight: bold; color: #667eea; margin-top: 10px;">{mean_val:.4f}</div>
-                        </div>
-                        """, unsafe_allow_html=True)
-                    with col2:
-                        st.markdown(f"""
-                        <div class="readiness-box" style="text-align: center;">
-                            <div style="font-size: 14px; color: #718096;">الوسيط (Median)</div>
-                            <div style="font-size: 24px; font-weight: bold; color: #764ba2; margin-top: 10px;">{median_val:.4f}</div>
-                        </div>
-                        """, unsafe_allow_html=True)
-                    with col3:
-                        st.markdown(f"""
-                        <div class="readiness-box" style="text-align: center;">
-                            <div style="font-size: 14px; color: #718096;">المنوال (Mode)</div>
-                            <div style="font-size: 24px; font-weight: bold; color: #f093fb; margin-top: 10px;">{mode_val:.4f}</div>
-                        </div>
-                        """, unsafe_allow_html=True)
-                    
-                    st.markdown("---")
-                    
-                    st.markdown("#### 2️⃣ مقاييس التشتت (Measures of Dispersion)")
-                    
-                    range_val = col_data.max() - col_data.min()
-                    variance_val = col_data.var()
-                    std_val = col_data.std()
-                    cv_val = (std_val / mean_val * 100) if mean_val != 0 else 0
-                    
-                    col1, col2, col3, col4 = st.columns(4)
-                    with col1:
-                        st.markdown(f"""
-                        <div class="readiness-box" style="text-align: center;">
-                            <div style="font-size: 12px; color: #718096;">المدى (Range)</div>
-                            <div style="font-size: 20px; font-weight: bold; color: #667eea; margin-top: 10px;">{range_val:.4f}</div>
-                        </div>
-                        """, unsafe_allow_html=True)
-                    with col2:
-                        st.markdown(f"""
-                        <div class="readiness-box" style="text-align: center;">
-                            <div style="font-size: 12px; color: #718096;">التباين (Variance)</div>
-                            <div style="font-size: 20px; font-weight: bold; color: #764ba2; margin-top: 10px;">{variance_val:.4f}</div>
-                        </div>
-                        """, unsafe_allow_html=True)
-                    with col3:
-                        st.markdown(f"""
-                        <div class="readiness-box" style="text-align: center;">
-                            <div style="font-size: 12px; color: #718096;">الانحراف المعياري (Std)</div>
-                            <div style="font-size: 20px; font-weight: bold; color: #f093fb; margin-top: 10px;">{std_val:.4f}</div>
-                        </div>
-                        """, unsafe_allow_html=True)
-                    with col4:
-                        st.markdown(f"""
-                        <div class="readiness-box" style="text-align: center;">
-                            <div style="font-size: 12px; color: #718096;">معامل الاختلاف (CV%)</div>
-                            <div style="font-size: 20px; font-weight: bold; color: #48bb78; margin-top: 10px;">{cv_val:.2f}%</div>
-                        </div>
-                        """, unsafe_allow_html=True)
-                    
-                    st.markdown("---")
-                    
-                    st.markdown("#### 3️ مقاييس الموضع (Measures of Position)")
-                    
-                    q1_val = col_data.quantile(0.25)
-                    q2_val = col_data.quantile(0.50)
-                    q3_val = col_data.quantile(0.75)
-                    p10_val = col_data.quantile(0.10)
-                    p90_val = col_data.quantile(0.90)
-                    iqr_val = q3_val - q1_val
-                    
-                    col1, col2, col3, col4 = st.columns(4)
-                    with col1:
-                        st.markdown(f"""
-                        <div class="readiness-box" style="text-align: center;">
-                            <div style="font-size: 12px; color: #718096;">الربيع الأول (Q1)</div>
-                            <div style="font-size: 20px; font-weight: bold; color: #667eea; margin-top: 10px;">{q1_val:.4f}</div>
-                        </div>
-                        """, unsafe_allow_html=True)
-                    with col2:
-                        st.markdown(f"""
-                        <div class="readiness-box" style="text-align: center;">
-                            <div style="font-size: 12px; color: #718096;">الربيع الثاني (Q2)</div>
-                            <div style="font-size: 20px; font-weight: bold; color: #764ba2; margin-top: 10px;">{q2_val:.4f}</div>
-                        </div>
-                        """, unsafe_allow_html=True)
-                    with col3:
-                        st.markdown(f"""
-                        <div class="readiness-box" style="text-align: center;">
-                            <div style="font-size: 12px; color: #718096;">الربيع الثالث (Q3)</div>
-                            <div style="font-size: 20px; font-weight: bold; color: #f093fb; margin-top: 10px;">{q3_val:.4f}</div>
-                        </div>
-                        """, unsafe_allow_html=True)
-                    with col4:
-                        st.markdown(f"""
-                        <div class="readiness-box" style="text-align: center;">
-                            <div style="font-size: 12px; color: #718096;">المدى الربيعي (IQR)</div>
-                            <div style="font-size: 20px; font-weight: bold; color: #48bb78; margin-top: 10px;">{iqr_val:.4f}</div>
-                        </div>
-                        """, unsafe_allow_html=True)
-                    
-                    col1, col2 = st.columns(2)
-                    with col1:
-                        st.markdown(f"""
-                        <div class="readiness-box" style="text-align: center;">
-                            <div style="font-size: 12px; color: #718096;">النسبة المئوية 10%</div>
-                            <div style="font-size: 20px; font-weight: bold; color: #ed8936; margin-top: 10px;">{p10_val:.4f}</div>
-                        </div>
-                        """, unsafe_allow_html=True)
-                    with col2:
-                        st.markdown(f"""
-                        <div class="readiness-box" style="text-align: center;">
-                            <div style="font-size: 12px; color: #718096;">النسبة المئوية 90%</div>
-                            <div style="font-size: 20px; font-weight: bold; color: #ed8936; margin-top: 10px;">{p90_val:.4f}</div>
-                        </div>
-                        """, unsafe_allow_html=True)
-                    
-                    st.markdown("---")
-                    
-                    st.markdown("#### 4️⃣ الانحناء والتفلطح (Skewness & Kurtosis)")
-                    
-                    skew_val = col_data.skew()
-                    kurt_val = col_data.kurtosis()
-                    
-                    if skew_val > 1:
-                        skew_interpretation = "التوزيع منحرف بشدة لليمين (إيجابي)"
-                    elif skew_val > 0.5:
-                        skew_interpretation = "التوزيع منحرف moderately لليمين"
-                    elif skew_val > -0.5:
-                        skew_interpretation = "التوزيع متماثل تقريباً"
-                    elif skew_val > -1:
-                        skew_interpretation = "التوزيع منحرف moderately لليسار"
-                    else:
-                        skew_interpretation = "التوزيع منحرف بشدة لليسار (سلبي)"
-                    
-                    if kurt_val > 3:
-                        kurt_interpretation = "التوزيع مدبب (Leptokurtic) - ذيول ثقيلة"
-                    elif kurt_val > 0:
-                        kurt_interpretation = "التوزيع متوسط التفلطح"
-                    else:
-                        kurt_interpretation = "التوزيع مفلطح (Platykurtic) - ذيول خفيفة"
-                    
-                    col1, col2 = st.columns(2)
-                    with col1:
-                        st.markdown(f"""
-                        <div class="readiness-box">
-                            <div style="font-size: 14px; color: #718096; text-align: center;">الانحناء (Skewness)</div>
-                            <div style="font-size: 28px; font-weight: bold; color: #667eea; text-align: center; margin: 10px 0;">{skew_val:.4f}</div>
-                            <div style="font-size: 12px; color: #4a5568; text-align: center; background: #f7fafc; padding: 8px; border-radius: 8px;">{skew_interpretation}</div>
-                        </div>
-                        """, unsafe_allow_html=True)
-                    with col2:
-                        st.markdown(f"""
-                        <div class="readiness-box">
-                            <div style="font-size: 14px; color: #718096; text-align: center;">التفلطح (Kurtosis)</div>
-                            <div style="font-size: 28px; font-weight: bold; color: #764ba2; text-align: center; margin: 10px 0;">{kurt_val:.4f}</div>
-                            <div style="font-size: 12px; color: #4a5568; text-align: center; background: #f7fafc; padding: 8px; border-radius: 8px;">{kurt_interpretation}</div>
-                        </div>
-                        """, unsafe_allow_html=True)
-                    
-                    st.markdown("---")
-                    
-                    st.markdown("#### 📋 الملخص الإحصائي الشامل")
-                    
-                    summary_data = {
-                        'المقياس': [
-                            'العدد (Count)',
-                            'المتوسط (Mean)',
-                            'الوسيط (Median)',
-                            'المنوال (Mode)',
-                            'الانحراف المعياري (Std)',
-                            'التباين (Variance)',
-                            'المدى (Range)',
-                            'الحد الأدنى (Min)',
-                            'الربيع الأول (Q1)',
-                            'الربيع الثاني (Q2)',
-                            'الربيع الثالث (Q3)',
-                            'الحد الأقصى (Max)',
-                            'الانحناء (Skewness)',
-                            'التفلطح (Kurtosis)'
-                        ],
-                        'القيمة': [
-                            len(col_data),
-                            f"{mean_val:.4f}",
-                            f"{median_val:.4f}",
-                            f"{mode_val:.4f}",
-                            f"{std_val:.4f}",
-                            f"{variance_val:.4f}",
-                            f"{range_val:.4f}",
-                            f"{col_data.min():.4f}",
-                            f"{q1_val:.4f}",
-                            f"{q2_val:.4f}",
-                            f"{q3_val:.4f}",
-                            f"{col_data.max():.4f}",
-                            f"{skew_val:.4f}",
-                            f"{kurt_val:.4f}"
-                        ]
-                    }
-                    
-                    summary_df = pd.DataFrame(summary_data)
-                    st.dataframe(summary_df, use_container_width=True)
-            else:
-                st.warning("لا توجد متغيرات رقمية في البيانات")
-            
-            st.markdown("---")
-            
-            if st.button("📥 تصدير تقرير المقاييس الإحصائية", type="primary", key="btn_export_stats"):
-                html_report = f"""
-                <!DOCTYPE html>
-                <html dir="rtl" lang="ar">
-                <head>
-                    <meta charset="UTF-8">
-                    <title>تقرير المقاييس الإحصائية - Smart Analytics Pro</title>
-                    <style>
-                        body {{ font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; margin: 40px; background: #f5f7fa; }}
-                        .container {{ max-width: 1200px; margin: 0 auto; background: white; padding: 40px; border-radius: 10px; box-shadow: 0 2px 10px rgba(0,0,0,0.1); }}
-                        h1 {{ color: #667eea; text-align: center; }}
-                        h2 {{ color: #764ba2; border-bottom: 2px solid #667eea; padding-bottom: 10px; margin-top: 30px; }}
-                        table {{ width: 100%; border-collapse: collapse; margin: 20px 0; }}
-                        th, td {{ padding: 12px; text-align: right; border: 1px solid #ddd; }}
-                        th {{ background: #667eea; color: white; }}
-                        tr:nth-child(even) {{ background: #f5f7fa; }}
-                        .footer {{ text-align: center; margin-top: 40px; color: #718096; }}
-                    </style>
-                </head>
-                <body>
-                    <div class="container">
-                        <h1> تقرير المقاييس الإحصائية</h1>
-                        <p style="text-align: center; color: #718096;">Smart Analytics Pro - {datetime.now().strftime('%Y-%m-%d %H:%M')}</p>
-                        <h2>الملخص الإحصائي الشامل</h2>
-                        {summary_df.to_html(index=False) if numeric_cols else 'لا توجد بيانات رقمية'}
-                        <div class="footer">
-                            <p>تم إنشاء هذا التقرير تلقائياً بواسطة Smart Analytics Pro</p>
-                            <p>© 2026 جميع الحقوق محفوظة</p>
-                        </div>
-                    </div>
-                </body>
-                </html>
-                """
-                
-                st.download_button(
-                    label="📥 تحميل تقرير HTML",
-                    data=html_report,
-                    file_name=f"Statistics_Report_{datetime.now().strftime('%Y%m%d_%H%M%S')}.html",
-                    mime="text/html",
-                    use_container_width=True
-                )
-                st.success("✅ تم إنشاء التقرير بنجاح!")
-        
-        # ===== التبويب 4: Box Plots =====
-        with tab4:
-            st.markdown("### 📦 Box Plots (مخططات الصندوق)")
-            st.markdown("---")
-            
-            if numeric_cols:
-                st.markdown("#### Box Plot لعمود واحد")
-                selected_box = st.selectbox("اختر العمود", numeric_cols, key="eda_box_col")
-                
-                fig_box = px.box(df, y=selected_box,
-                               title=f"Box Plot لـ {selected_box}",
-                               color_discrete_sequence=['#667eea'])
-                st.plotly_chart(fig_box, use_container_width=True)
+                c1, c2, c3, c4 = st.columns(4)
+                with c1: st.metric("المتوسط (Mean)", f"{cd.mean():.2f}")
+                with c2: st.metric("الوسيط (Median)", f"{cd.median():.2f}")
+                with c3: st.metric("الانحراف المعياري (Std)", f"{cd.std():.2f}")
+                with c4: st.metric("التباين (Variance)", f"{cd.var():.2f}")
                 
                 st.markdown("---")
+                sk, ku = cd.skew(), cd.kurtosis()
+                sk_i = "منحرف بشدة لليمين" if sk > 1 else ("منحرف لليمين" if sk > 0.5 else ("متماثل تقريباً" if sk > -0.5 else ("منحرف لليسار" if sk > -1 else "منحرف بشدة لليسار")))
+                ku_i = "مدبب (ذيول ثقيلة)" if ku > 3 else ("متوسط التفلطح" if ku > 0 else "مفلطح (ذيول خفيفة)")
+                
+                c1, c2 = st.columns(2)
+                with c1: st.info(f"**الانحناء (Skewness):** {sk:.4f}\n\n*التفسير:* {sk_i}")
+                with c2: st.info(f"**التفلطح (Kurtosis):** {ku:.4f}\n\n*التفسير:* {ku_i}")
+                
+                fig = px.histogram(df, x=selected_stat_col, nbins=30, title=f"توزيع {selected_stat_col}", color_discrete_sequence=['#667eea'])
+                fig.add_vline(x=cd.mean(), line_dash="dash", line_color="red", annotation_text=f"Mean: {cd.mean():.2f}")
+                st.plotly_chart(fig, use_container_width=True)
+            else:
+                st.info("لا توجد متغيرات رقمية")
+                
+        with tab4:
+            st.markdown("### 📦 Box Plots (مخططات الصندوق)")
+            if numeric_cols:
+                selected_box = st.selectbox("اختر العمود", numeric_cols, key="eda_box_col")
+                fig_box = px.box(df, y=selected_box, title=f"Box Plot لـ {selected_box}", color_discrete_sequence=['#667eea'])
+                st.plotly_chart(fig_box, use_container_width=True)
                 
                 if len(numeric_cols) <= 10:
                     st.markdown("#### Box Plot لجميع المتغيرات الرقمية")
-                    
                     df_melted = df[numeric_cols].melt(var_name='المتغير', value_name='القيمة')
-                    
-                    fig_box_all = px.box(df_melted, x='المتغير', y='القيمة',
-                                        title="Box Plot لجميع المتغيرات الرقمية",
-                                        color='المتغير')
+                    fig_box_all = px.box(df_melted, x='المتغير', y='القيمة', title="Box Plot لجميع المتغيرات الرقمية", color='المتغير')
                     fig_box_all.update_layout(height=500)
                     st.plotly_chart(fig_box_all, use_container_width=True)
-                
-                st.markdown("---")
-                
-                if categorical_cols and len(numeric_cols) >= 1:
-                    st.markdown("#### Box Plot حسب متغير فئوي")
-                    
-                    box_num_col = st.selectbox("اختر المتغير الرقمي", numeric_cols, key="eda_box_num")
-                    box_cat_col = st.selectbox("اختر المتغير الفئوي", categorical_cols, key="eda_box_cat")
-                    
-                    fig_box_cat = px.box(df, x=box_cat_col, y=box_num_col,
-                                        title=f"Box Plot لـ {box_num_col} حسب {box_cat_col}",
-                                        color=box_cat_col)
-                    st.plotly_chart(fig_box_cat, use_container_width=True)
             else:
-                st.warning("لا توجد متغيرات رقمية في البيانات")
-            
-            st.markdown("---")
-            
-            if st.button(" تصدير تقرير Box Plots", type="primary", key="btn_export_box"):
-                html_report = f"""
-                <!DOCTYPE html>
-                <html dir="rtl" lang="ar">
-                <head>
-                    <meta charset="UTF-8">
-                    <title>تقرير Box Plots - Smart Analytics Pro</title>
-                    <style>
-                        body {{ font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; margin: 40px; background: #f5f7fa; }}
-                        .container {{ max-width: 1200px; margin: 0 auto; background: white; padding: 40px; border-radius: 10px; box-shadow: 0 2px 10px rgba(0,0,0,0.1); }}
-                        h1 {{ color: #667eea; text-align: center; }}
-                        h2 {{ color: #764ba2; border-bottom: 2px solid #667eea; padding-bottom: 10px; margin-top: 30px; }}
-                        .footer {{ text-align: center; margin-top: 40px; color: #718096; }}
-                    </style>
-                </head>
-                <body>
-                    <div class="container">
-                        <h1>📦 تقرير Box Plots</h1>
-                        <p style="text-align: center; color: #718096;">Smart Analytics Pro - {datetime.now().strftime('%Y-%m-%d %H:%M')}</p>
-                        <h2>ملخص Box Plots</h2>
-                        <p>عدد المتغيرات الرقمية: {len(numeric_cols)}</p>
-                        <div class="footer">
-                            <p>تم إنشاء هذا التقرير تلقائياً بواسطة Smart Analytics Pro</p>
-                            <p>© 2026 جميع الحقوق محفوظة</p>
-                        </div>
-                    </div>
-                </body>
-                </html>
-                """
-                
-                st.download_button(
-                    label=" تحميل تقرير HTML",
-                    data=html_report,
-                    file_name=f"BoxPlots_Report_{datetime.now().strftime('%Y%m%d_%H%M%S')}.html",
-                    mime="text/html",
-                    use_container_width=True
-                )
-                st.success("✅ تم إنشاء التقرير بنجاح!")
-
+                st.info("لا توجد متغيرات رقمية")
 # ===== باقي الصفحات =====
 elif st.session_state.page == "diagnostic":
     st.markdown("## 🔍 التحليل التشخيصي")
