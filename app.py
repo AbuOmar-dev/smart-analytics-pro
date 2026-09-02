@@ -3,462 +3,549 @@ import pandas as pd
 import numpy as np
 import plotly.express as px
 import plotly.graph_objects as go
+from sklearn.linear_model import LinearRegression
+from sklearn.model_selection import train_test_split
+from sklearn.metrics import mean_squared_error, r2_score
 from sklearn.preprocessing import LabelEncoder, OneHotEncoder
 import io
 from datetime import datetime
+from supabase import create_client, Client
+import config
 
 # ==================== إعدادات الصفحة ====================
-st.set_page_config(page_title="Smart Analytics Pro", page_icon="📊", layout="wide")
+st.set_page_config(page_title="Smart Analytics Pro", page_icon="📊", layout="wide", initial_sidebar_state="expanded")
 
-# ==================== CSS ====================
+# ==================== CSS Styling ====================
 st.markdown("""
 <style>
-    .main { background: linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%); }
-    .stButton>button { background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; border-radius: 12px; font-weight: 600; }
-    .metric-card { background: white; padding: 20px; border-radius: 12px; box-shadow: 0 4px 15px rgba(0,0,0,0.1); text-align: center; }
-    .section-header { background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; padding: 15px; border-radius: 10px; margin: 20px 0; }
-    #MainMenu {visibility: hidden;} footer {visibility: hidden;}
+.main { background: linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%); min-height: 100vh; }
+h1, h2, h3 { background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); -webkit-background-clip: text; -webkit-text-fill-color: transparent; font-weight: 700; }
+.stButton>button { background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; border-radius: 12px; padding: 12px 28px; font-weight: 600; border: none; box-shadow: 0 4px 15px rgba(102, 126, 234, 0.3); transition: all 0.3s ease; }
+.stButton>button:hover { transform: translateY(-2px); box-shadow: 0 6px 20px rgba(102, 126, 234, 0.5); }
+.login-container { max-width: 500px; margin: 60px auto; padding: 50px 40px; background: white; border-radius: 24px; box-shadow: 0 20px 60px rgba(0,0,0,0.15); }
+.login-header { text-align: center; margin-bottom: 40px; }
+.login-header h1 { font-size: 36px; margin-bottom: 10px; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); -webkit-background-clip: text; -webkit-text-fill-color: transparent; }
+.hero-section { text-align: center; padding: 80px 20px; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; border-radius: 24px; margin-bottom: 40px; box-shadow: 0 20px 60px rgba(102, 126, 234, 0.4); }
+.hero-section h1 { font-size: 48px; margin-bottom: 20px; color: white !important; -webkit-text-fill-color: white !important; }
+.feature-card { background: white; padding: 30px; border-radius: 20px; text-align: center; box-shadow: 0 10px 30px rgba(0,0,0,0.1); transition: all 0.3s ease; margin: 10px; }
+.feature-card:hover { transform: translateY(-10px); box-shadow: 0 20px 40px rgba(0,0,0,0.15); }
+.readiness-box { background: white; padding: 25px; border-radius: 16px; box-shadow: 0 4px 15px rgba(0,0,0,0.1); margin: 15px 0; }
+.score-good { color: #48bb78; font-weight: bold; font-size: 24px; }
+.score-warning { color: #ed8936; font-weight: bold; font-size: 24px; }
+.score-bad { color: #f56565; font-weight: bold; font-size: 24px; }
+#MainMenu {visibility: hidden;} footer {visibility: hidden;}
 </style>
 """, unsafe_allow_html=True)
 
+# ==================== Supabase ====================
+SUPABASE_URL = "https://llsoulwgpptlpatgivqk.supabase.co"
+SUPABASE_KEY = "sb_publishable_OpzDbBV2XqSJchMJ6DqmLQ_DYyB9GVH"
+try:
+    supabase = create_client(SUPABASE_URL, SUPABASE_KEY)
+except Exception as e:
+    st.error(f"خطأ في الاتصال: {e}")
+    supabase = None
+
 # ==================== تهيئة الحالة ====================
+if "logged_in" not in st.session_state: st.session_state.logged_in = False
+if "current_user" not in st.session_state: st.session_state.current_user = None
+if "show_register" not in st.session_state: st.session_state.show_register = False
+if "page" not in st.session_state: st.session_state.page = "home"
 if "df" not in st.session_state: st.session_state.df = None
 if "df_clean" not in st.session_state: st.session_state.df_clean = None
-if "cleaning_steps" not in st.session_state: st.session_state.cleaning_steps = []
 
-# ==================== الدوال المساعدة ====================
-def detect_column_types(df):
-    """اكتشاف أنواع الأعمدة ديناميكياً"""
-    numeric_cols = df.select_dtypes(include=[np.number]).columns.tolist()
-    datetime_cols = []
-    categorical_cols = []
-    
-    for col in df.select_dtypes(exclude=[np.number]).columns:
-        try:
-            pd.to_datetime(df[col].dropna().head(50))
-            datetime_cols.append(col)
-        except:
-            if df[col].nunique() < min(50, len(df) * 0.5):
-                categorical_cols.append(col)
-            else:
-                pass  # تجاهل الأعمدة النصية الفريدة
-    
-    return numeric_cols, categorical_cols, datetime_cols
-
-def build_html_table(dataframe, title=""):
-    """بناء جدول HTML نقي"""
-    html = f"<h4 style='color:#667eea; margin:20px 0 10px 0;'>{title}</h4>"
-    html += "<table style='width:100%; border-collapse:collapse; margin:10px 0; font-size:14px;'>"
-    html += "<thead><tr style='background:#667eea; color:white;'>"
-    for col in dataframe.columns:
-        html += f"<th style='padding:10px; text-align:right;'>{col}</th>"
-    html += "</tr></thead><tbody>"
-    for idx, row in dataframe.iterrows():
-        bg = "#f7fafc" if idx % 2 == 0 else "white"
-        html += f"<tr style='background:{bg};'>"
-        for val in row:
-            val_str = str(val) if pd.notna(val) else "-"
-            html += f"<td style='padding:8px; border-bottom:1px solid #e2e8f0; text-align:right;'>{val_str}</td>"
-        html += "</tr>"
-    html += "</tbody></table>"
-    return html
-
-def interpret_skewness(val):
-    if abs(val) < 0.5: return "متماثل تقريباً (توزيع طبيعي)"
-    elif val > 0: return f"منحرف لليمين (إيجابي) - معظم البيانات集中在 القيم المنخفضة"
-    else: return f"منحرف لليسار (سلبي) - معظم البيانات集中在 القيم العالية"
-
-def interpret_kurtosis(val):
-    if val > 3: return "مدبب (Leptokurtic) - ذيول ثقيلة، قيم متطرفة أكثر"
-    elif val < 3: return "مفلطح (Platykurtic) - ذيول خفيفة، قيم متطرفة أقل"
-    else: return "طبيعي (Mesokurtic) - توزيع طبيعي"
-
-# ==================== الصفحة الرئيسية ====================
-st.markdown("<div class='section-header'><h1>📊 Smart Analytics Pro - منصة التحليل الديناميكية</h1></div>", unsafe_allow_html=True)
-
-# ====== المرحلة 1: رفع البيانات ======
-st.markdown("### 📥 المرحلة 1: رفع البيانات")
-uploaded_file = st.file_uploader("اختر ملف CSV أو Excel", type=['csv', 'xlsx', 'xls'], key="uploader")
-
-if uploaded_file is not None:
+# ==================== دوال المستخدمين ====================
+def load_users():
+    if supabase is None: return {}
     try:
-        if uploaded_file.name.endswith('.csv'):
-            df = pd.read_csv(uploaded_file)
-        else:
-            df = pd.read_excel(uploaded_file)
-        st.session_state.df = df
-        st.session_state.df_clean = None
-        st.success(f"✅ تم رفع البيانات بنجاح: {len(df)} صف، {len(df.columns)} عمود")
+        response = supabase.table("users").select("*").execute()
+        return {user['username']: {'password': user['password'], 'name': user['name'], 'email': user['email'], 'plan': user.get('plan', 'Free'), 'role': user.get('role', 'user')} for user in response.data}
     except Exception as e:
-        st.error(f" خطأ في قراءة الملف: {e}")
-        st.stop()
-else:
-    st.info(" يرجى رفع ملف للبدء")
-    st.stop()
+        st.error(f"خطأ: {e}"); return {}
 
-df = st.session_state.df
-numeric_cols, categorical_cols, datetime_cols = detect_column_types(df)
+def register_user(username, password, name, email, plan='Free'):
+    if supabase is None: return False, "خطأ في الاتصال"
+    try:
+        if len(supabase.table("users").select("username").eq("username", username).execute().data) > 0:
+            return False, "اسم المستخدم موجود بالفعل"
+        supabase.table("users").insert({'username': username, 'password': password, 'name': name, 'email': email, 'plan': plan, 'role': 'user'}).execute()
+        return True, "تم التسجيل بنجاح!"
+    except Exception as e:
+        return False, f"خطأ: {e}"
 
-# ====== المرحلة 2: عرض البيانات ======
-st.markdown("### 👁️ المرحلة 2: استعراض البيانات")
-view_option = st.radio("اختر العرض:", ["أول 10 صفوف", "آخر 10 صفوف", "عينة عشوائية"], horizontal=True, key="view_radio")
-
-if view_option == "أول 10 صفوف":
-    st.dataframe(df.head(10), use_container_width=True)
-elif view_option == "آخر 10 صفوف":
-    st.dataframe(df.tail(10), use_container_width=True)
-else:
-    st.dataframe(df.sample(min(10, len(df))), use_container_width=True)
-
-# ====== المرحلة 3: معلومات البيانات ======
-st.markdown("### 📋 المرحلة 3: معلومات البيانات (Metadata)")
-
-# معلومات عامة
-col1, col2, col3, col4 = st.columns(4)
-with col1: st.metric("عدد الصفوف", len(df))
-with col2: st.metric("عدد الأعمدة", len(df.columns))
-with col3: st.metric("الأعمدة الرقمية", len(numeric_cols))
-with col4: st.metric("الأعمدة الفئوية", len(categorical_cols))
-
-# معلومات تفصيلية لكل عمود
-info_data = []
-for col in df.columns:
-    info_data.append({
-        'العمود': col,
-        'النوع': str(df[col].dtype),
-        'القيم الفريدة': df[col].nunique(),
-        'القيم المفقودة': int(df[col].isnull().sum()),
-        'نسبة المفقود %': round(df[col].isnull().sum() / len(df) * 100, 2),
-        'أول قيمة': str(df[col].iloc[0]) if len(df) > 0 else '-',
-        'آخر قيمة': str(df[col].iloc[-1]) if len(df) > 0 else '-'
-    })
-
-st.markdown(build_html_table(pd.DataFrame(info_data), "📊 معلومات تفصيلية لكل عمود"), unsafe_allow_html=True)
-
-# ====== المرحلة 4: ملخص بصري ======
-st.markdown("### 📈 المرحلة 4: الملخص البصري للبيانات")
-viz_col = st.selectbox("اختر عمود للعرض البصري:", df.columns.tolist(), key="viz_col")
-
-if viz_col in numeric_cols:
-    col1, col2 = st.columns(2)
-    with col1:
-        fig = px.histogram(df, x=viz_col, title=f"توزيع {viz_col}", color_discrete_sequence=['#667eea'])
-        st.plotly_chart(fig, use_container_width=True)
-    with col2:
-        fig = px.box(df, y=viz_col, title=f"Box Plot لـ {viz_col}", color_discrete_sequence=['#764ba2'])
-        st.plotly_chart(fig, use_container_width=True)
-elif viz_col in categorical_cols:
-    counts = df[viz_col].value_counts().head(15)
-    fig = px.bar(x=counts.values, y=counts.index, orientation='h', title=f"توزيع {viz_col}", color=counts.values, color_continuous_scale='Blues')
-    st.plotly_chart(fig, use_container_width=True)
-else:
-    st.info(f"العمود {viz_col} من نوع تاريخ - لا يمكن عرضه بيانياً")
-
-# ====== المرحلة 5: التنظيف والمعالجة ======
-st.markdown("###  المرحلة 5: تنظيف ومعالجة البيانات")
-
-if st.session_state.df_clean is not None:
-    st.success(f"✅ البيانات المنظفة جاهزة ({len(st.session_state.df_clean)} صف)")
-    if st.button("إعادة تعيين التنظيف", key="reset_clean"):
-        st.session_state.df_clean = None
-        st.session_state.cleaning_steps = []
-        st.rerun()
-else:
-    st.markdown("#### 5.1 معالجة القيم المفقودة")
-    missing_cols_with_data = [c for c in df.columns if df[c].isnull().sum() > 0]
+# ==================== صفحة تسجيل الدخول ====================
+if not st.session_state.logged_in:
+    st.markdown("""<div class="login-container"><div class="login-header"><div style="font-size: 80px; margin-bottom: 20px;"></div><h1>Smart Analytics Pro</h1><p style="color: #718096; font-size: 18px;">منصة احترافية لتحليل البيانات والذكاء الاصطناعي</p></div></div>""", unsafe_allow_html=True)
     
-    if missing_cols_with_data:
-        st.info(f"الأعمدة التي تحتوي على قيم مفقودة: {len(missing_cols_with_data)}")
-        missing_method = st.selectbox("طريقة المعالجة:", 
-            ["حذف الصفوف", "حذف الأعمدة", "تعويض بالمتوسط (رقمي)", "تعويض بالوسيط (رقمي)", "تعويض بالأكثر تكراراً", "لا تفعل شيئاً"],
-            key="missing_method")
-        
-        if st.button("تطبيق معالجة القيم المفقودة", key="apply_missing"):
-            df_clean = df.copy()
-            if missing_method == "حذف الصفوف":
-                before = len(df_clean)
-                df_clean = df_clean.dropna()
-                st.session_state.cleaning_steps.append(f"حذف {before - len(df_clean)} صف")
-            elif missing_method == "حذف الأعمدة":
-                before = len(df_clean.columns)
-                df_clean = df_clean.dropna(axis=1)
-                st.session_state.cleaning_steps.append(f"حذف {before - len(df_clean.columns)} عمود")
-            elif "بالمتوسط" in missing_method:
-                for c in df_clean.select_dtypes(include=[np.number]).columns:
-                    df_clean[c] = df_clean[c].fillna(df_clean[c].mean())
-                st.session_state.cleaning_steps.append("تعويض بالمتوسط")
-            elif "بالوسيط" in missing_method:
-                for c in df_clean.select_dtypes(include=[np.number]).columns:
-                    df_clean[c] = df_clean[c].fillna(df_clean[c].median())
-                st.session_state.cleaning_steps.append("تعويض بالوسيط")
-            elif "بالأكثر" in missing_method:
-                for c in df_clean.columns:
-                    mode = df_clean[c].mode()
-                    if len(mode) > 0:
-                        df_clean[c] = df_clean[c].fillna(mode[0])
-                st.session_state.cleaning_steps.append("تعويض بالأكثر تكراراً")
-            st.session_state.df_clean = df_clean
-            st.success("✅ تم التطبيق")
-            st.rerun()
+    if st.session_state.show_register:
+        st.markdown("### 📝 إنشاء حساب جديد")
+        col1, col2, col3 = st.columns([1, 2, 1])
+        with col2:
+            new_username = st.text_input("اسم المستخدم", key="reg_username")
+            new_name = st.text_input("الاسم الكامل", key="reg_name")
+            new_email = st.text_input("البريد الإلكتروني", key="reg_email")
+            new_password = st.text_input("كلمة المرور", type="password", key="reg_password")
+            confirm_password = st.text_input("تأكيد كلمة المرور", type="password", key="reg_confirm")
+            if st.button("✅ تسجيل الحساب", use_container_width=True, type="primary", key="btn_register"):
+                if not all([new_username, new_password, new_name, new_email]): st.error("❌ يرجى ملء جميع الحقول")
+                elif new_password != confirm_password: st.error(" كلمات المرور غير متطابقة")
+                elif len(new_password) < 6: st.error("❌ كلمة المرور يجب أن تكون 6 أحرف على الأقل")
+                else:
+                    success, message = register_user(new_username, new_password, new_name, new_email)
+                    if success: st.success(f"✅ {message}"); st.balloons(); st.session_state.show_register = False; st.rerun()
+                    else: st.error(f"❌ {message}")
+            if st.button("🔐 لديك حساب؟ دخول", use_container_width=True, type="secondary", key="btn_go_login"): st.session_state.show_register = False; st.rerun()
+    else:
+        st.markdown("### 🔐 تسجيل الدخول")
+        col1, col2, col3 = st.columns([1, 2, 1])
+        with col2:
+            username = st.text_input("اسم المستخدم", key="login_user")
+            password = st.text_input("كلمة المرور", type="password", key="login_pass")
+            if st.button("🚪 دخول", use_container_width=True, type="primary", key="btn_login"):
+                users = load_users()
+                if username in users and users[username]['password'] == password:
+                    st.session_state.logged_in = True
+                    st.session_state.current_user = {'username': username, 'name': users[username]['name'], 'email': users[username]['email'], 'plan': users[username]['plan'], 'role': users[username]['role']}
+                    st.success(f"✅ مرحباً {users[username]['name']}!"); st.rerun()
+                else: st.error("❌ اسم المستخدم أو كلمة المرور غير صحيحة")
+        st.markdown("---")
+        if st.button("📝 ليس لديك حساب؟ سجل الآن", use_container_width=True, type="secondary", key="btn_go_register"): st.session_state.show_register = True; st.rerun()
+        st.info(" **بيانات تجريبية:**\n- المستخدم: `admin`\n- كلمة المرور: `Smart@2026`")
+        st.stop()
+
+# ==================== المنصة الرئيسية ====================
+current_user = st.session_state.current_user
+def load_data(file):
+    try:
+        if file.name.endswith('.csv'): return pd.read_csv(file)
+        elif file.name.endswith(('.xlsx', '.xls')): return pd.read_excel(file)
+        return None
+    except: return None
+
+with st.sidebar:
+    if current_user:
+        st.markdown(f"""<div style="background: rgba(255,255,255,0.2); padding: 20px; border-radius: 16px; text-align: center; margin: 10px 0;">
+            <div style="font-size: 50px; margin-bottom: 10px;">👤</div>
+            <div style="font-size: 18px; font-weight: bold; color: white;">{current_user['name']}</div>
+            <div style="font-size: 14px; color: rgba(255,255,255,0.9); margin-top: 5px;">⭐ {current_user['plan']} Plan</div>
+        </div>""", unsafe_allow_html=True)
+    st.markdown("---")
+    st.markdown("### 📍 التنقل السريع")
+    menu = {"home": "🏠 الرئيسية", "pricing": "💰 الأسعار", "data_import": "📥 استيراد البيانات", "data_overview": "️ نظرة عامة على البيانات", "cleaning": "🧹 تنظيف البيانات", "eda": " التحليل الاستكشافي", "final_dashboard": "📊 الداشبورد النهائية"}
+    for key, label in menu.items():
+        if st.button(label, use_container_width=True, key=f"nav_{key}"): st.session_state.page = key; st.rerun()
+    st.markdown("---")
+    if st.button("🚪 تسجيل الخروج", use_container_width=True, key="btn_logout"): st.session_state.logged_in = False; st.session_state.current_user = None; st.session_state.page = "home"; st.session_state.show_register = False; st.rerun()
+    if st.session_state.df is not None:
+        st.markdown(f"""<div style="background: rgba(255,255,255,0.2); padding: 15px; border-radius: 12px; margin-top: 20px;"><div style="color: white; font-size: 14px;">✅ البيانات محملة: {len(st.session_state.df)} صف</div></div>""", unsafe_allow_html=True)
+
+# ==================== الصفحات ====================
+if st.session_state.page == "home":
+    st.markdown("""<div class="hero-section"><h1>Smart Analytics Pro</h1><p>منصة احترافية لتحليل البيانات والذكاء الاصطناعي</p></div>""", unsafe_allow_html=True)
+    col1, col2, col3, col4 = st.columns(4)
+    with col1: st.markdown("""<div class="feature-card"><div style="font-size: 60px; margin-bottom: 20px;">📊</div><h3>التحليل الاستكشافي</h3><p>فهم شامل لبياناتك مع رسوم بيانية تفاعلية</p></div>""", unsafe_allow_html=True)
+    with col2: st.markdown("""<div class="feature-card"><div style="font-size: 60px; margin-bottom: 20px;">🔍</div><h3>التحليل التشخيصي</h3><p>اكتشف الأنماط والشذوذ في بياناتك</p></div>""", unsafe_allow_html=True)
+    with col3: st.markdown("""<div class="feature-card"><div style="font-size: 60px; margin-bottom: 20px;">🔮</div><h3>التحليل التنبؤي</h3><p>تنبؤات دقيقة باستخدام الذكاء الاصطناعي</p></div>""", unsafe_allow_html=True)
+    with col4: st.markdown("""<div class="feature-card"><div style="font-size: 60px; margin-bottom: 20px;">💡</div><h3>التحليل الإرشادي</h3><p>توصيات عملية لزيادة العائد على الاستثمار</p></div>""", unsafe_allow_html=True)
+    if current_user:
+        st.markdown(f"""<div style="background: linear-gradient(135deg, #f0fff4 0%, #c6f6d5 100%); padding: 20px; border-radius: 12px; margin-top: 40px; border-left: 5px solid #48bb78;"><h3>👋 مرحباً {current_user['name']}!</h3><p><strong>ابدأ الآن في 4 خطوات:</strong></p><ol><li>📥 استيراد البيانات</li><li>✅ فحص جاهزية البيانات</li><li>🧹 تنظيف البيانات (إذا لزم الأمر)</li><li>📊 التحليل الاستكشافي</li></ol></div>""", unsafe_allow_html=True)
+
+elif st.session_state.page == "pricing":
+    st.markdown("## 💰 باقات الاشتراك")
+    col1, col2, col3 = st.columns(3)
+    plans = [{"name": "🆓 Free", "price": "$0", "period": "/شهر", "features": ["3 مشاريع نشطة", "تخزين 100MB", "تحليل استكشافي فقط"], "button_type": "secondary"},
+             {"name": "⭐ Pro", "price": "$19", "period": "/شهر", "features": ["مشاريع غير محدودة", "تخزين 10GB", "كل التحليلات"], "button_type": "primary", "popular": True},
+             {"name": "🏢 Enterprise", "price": "$99", "period": "/شهر", "features": ["كل المميزات", "تخزين غير محدود", "API Access"], "button_type": "secondary"}]
+    for i, plan in enumerate(plans):
+        with [col1, col2, col3][i]:
+            if plan.get("popular"):
+                st.markdown(f"""<div style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; padding: 30px; border-radius: 20px; margin-bottom: 20px; box-shadow: 0 15px 40px rgba(102, 126, 234, 0.4);"><div style="text-align: center; background: rgba(255,255,255,0.2); padding: 8px; border-radius: 8px; margin-bottom: 15px;"> الأكثر شعبية</div><h2 style="color: white; text-align: center;">{plan['name']}</h2><h1 style="color: white; text-align: center;">{plan['price']}<span style="font-size: 18px;">{plan['period']}</span></h1></div>""", unsafe_allow_html=True)
+            else:
+                st.markdown(f"""<div style="background: white; padding: 30px; border-radius: 20px; margin-bottom: 20px; box-shadow: 0 10px 30px rgba(0,0,0,0.1);"><h2 style="text-align: center;">{plan['name']}</h2><h1 style="text-align: center;">{plan['price']}<span style="font-size: 18px;">{plan['period']}</span></h1></div>""", unsafe_allow_html=True)
+            st.markdown("### المميزات:"); 
+            for feature in plan["features"]: st.markdown(f"✅ {feature}")
+            st.button("اشترك الآن", use_container_width=True, type=plan["button_type"], key=f"sub_{i}")
+
+elif st.session_state.page == "data_import":
+    st.markdown("## 📥 استيراد البيانات")
+    uploaded_file = st.file_uploader("اختر ملف CSV أو Excel", type=['csv', 'xlsx', 'xls'])
+    if uploaded_file:
+        df = load_data(uploaded_file)
+        if df is not None:
+            st.session_state.df = df; st.session_state.df_clean = None
+            st.success(f"✅ تم الرفع بنجاح! {len(df)} صف")
+            col1, col2, col3, col4 = st.columns(4)
+            with col1: st.metric("عدد الصفوف", f"{len(df):,}")
+            with col2: st.metric("عدد الأعمدة", len(df.columns))
+            with col3: st.metric("حجم الملف", f"{uploaded_file.size / 1024:.2f} KB")
+            with col4: st.metric("الأعمدة الرقمية", df.select_dtypes(include=[np.number]).shape[1])
+            st.markdown("### معاينة البيانات"); st.dataframe(df.head(10), use_container_width=True)
+
+elif st.session_state.page == "data_overview":
+    st.markdown("## 👁️ نظرة عامة على البيانات")
+    if st.session_state.df is None:
+        st.warning("⚠️ يرجى رفع البيانات أولاً")
+        st.stop()
+    
+    df = st.session_state.df
+    
+    # عرض أول 10 وآخر 10 صفوف
+    st.markdown("### 📋 عرض البيانات")
+    view_option = st.radio("اختر العرض:", ["أول 10 صفوف", "آخر 10 صفوف"], horizontal=True)
+    if view_option == "أول 10 صفوف":
+        st.dataframe(df.head(10), use_container_width=True)
+    else:
+        st.dataframe(df.tail(10), use_container_width=True)
+    
+    st.markdown("---")
+    
+    # معلومات البيانات
+    st.markdown("### 📊 معلومات البيانات")
+    col1, col2, col3, col4 = st.columns(4)
+    with col1: st.metric("عدد الصفوف", len(df))
+    with col2: st.metric("عدد الأعمدة", len(df.columns))
+    with col3: st.metric("القيم المفقودة", int(df.isnull().sum().sum()))
+    with col4: st.metric("التكرارات", int(df.duplicated().sum()))
+    
+    st.markdown("---")
+    
+    # معلومات تفصيلية لكل عمود
+    st.markdown("### 🔍 معلومات تفصيلية لكل عمود")
+    info_data = []
+    for col in df.columns:
+        info_data.append({
+            'العمود': col,
+            'النوع': str(df[col].dtype),
+            'القيم الفريدة': int(df[col].nunique()),
+            'القيم المفقودة': int(df[col].isnull().sum()),
+            'نسبة المفقود %': round((df[col].isnull().sum() / len(df)) * 100, 2)
+        })
+    st.dataframe(pd.DataFrame(info_data), use_container_width=True)
+    
+    st.markdown("---")
+    
+    # رسم بياني ملخص
+    st.markdown("###  ملخص بصري سريع")
+    chart_col = st.selectbox("اختر عمود للعرض البياني:", df.columns.tolist())
+    if chart_col in df.select_dtypes(include=[np.number]).columns:
+        fig = px.histogram(df, x=chart_col, title=f"توزيع {chart_col}")
+        st.plotly_chart(fig, use_container_width=True)
+    else:
+        fig = px.bar(df[chart_col].value_counts().head(10), title=f"توزيع {chart_col}")
+        st.plotly_chart(fig, use_container_width=True)
+
+elif st.session_state.page == "cleaning":
+    st.markdown("## 🧹 تنظيف البيانات ومعالجتها")
+    if st.session_state.df is None:
+        st.warning("️ يرجى رفع البيانات أولاً")
+        st.stop()
+    
+    df = st.session_state.df.copy()
+    
+    st.markdown("### 📊 حالة البيانات قبل التنظيف")
+    col1, col2, col3 = st.columns(3)
+    with col1: st.metric("الصفوف", len(df))
+    with col2: st.metric("القيم المفقودة", int(df.isnull().sum().sum()))
+    with col3: st.metric("التكرارات", int(df.duplicated().sum()))
+    
+    st.markdown("---")
+    
+    # معالجة القيم المفقودة
+    st.markdown("### 1️⃣ معالجة القيم المفقودة (Missing Values)")
+    missing_cols = [col for col in df.columns if df[col].isnull().sum() > 0]
+    if missing_cols:
+        missing_method = st.selectbox("اختر طريقة المعالجة:", 
+            ["حذف الصفوف التي تحتوي على قيم مفقودة", 
+             "تعويض بالمتوسط (للأعمدة الرقمية)", 
+             "تعويض بالوسيط (للأعمدة الرقمية)", 
+             "تعويض بالقيمة الأكثر تكراراً", 
+             "لا تفعل شيئاً"], key="missing_method")
     else:
         st.success("✅ لا توجد قيم مفقودة")
+        missing_method = "لا تفعل شيئاً"
     
-    st.markdown("#### 5.2 معالجة القيم المتطرفة (Outliers)")
+    st.markdown("---")
+    
+    # معالجة القيم المتطرفة
+    st.markdown("### 2️⃣ معالجة القيم المتطرفة (Outliers)")
+    numeric_cols = df.select_dtypes(include=[np.number]).columns.tolist()
     if numeric_cols:
-        outlier_method = st.selectbox("طريقة الكشف:", ["IQR", "Z-Score"], key="outlier_method")
-        outlier_action = st.selectbox("الإجراء:", ["لا تفعل شيئاً", "حذف", "استبدال بالحدود"], key="outlier_action")
-        
-        if st.button("تطبيق معالجة القيم المتطرفة", key="apply_outliers"):
-            if st.session_state.df_clean is None:
-                df_clean = df.copy()
-            else:
-                df_clean = st.session_state.df_clean.copy()
-            
-            for c in numeric_cols:
-                if outlier_method == "IQR":
-                    Q1, Q3 = df_clean[c].quantile(0.25), df_clean[c].quantile(0.75)
-                    IQR = Q3 - Q1
-                    lower, upper = Q1 - 1.5*IQR, Q3 + 1.5*IQR
-                else:
-                    mean, std = df_clean[c].mean(), df_clean[c].std()
-                    lower, upper = mean - 3*std, mean + 3*std
-                
-                if outlier_action == "حذف":
-                    before = len(df_clean)
-                    df_clean = df_clean[(df_clean[c] >= lower) & (df_clean[c] <= upper)]
-                    st.session_state.cleaning_steps.append(f"حذف متطرفة من {c}")
-                elif outlier_action == "استبدال":
-                    df_clean[c] = df_clean[c].clip(lower=lower, upper=upper)
-                    st.session_state.cleaning_steps.append(f"استبدال متطرفة في {c}")
-            
-            st.session_state.df_clean = df_clean
-            st.success("✅ تم التطبيق")
-            st.rerun()
+        outlier_method = st.selectbox("اختر طريقة الكشف:", ["IQR Method", "Z-Score Method"], key="outlier_method")
+        outlier_action = st.selectbox("اختر الإجراء:", ["حذف القيم المتطرفة", "استبدال بالحدود", "لا تفعل شيئاً"], key="outlier_action")
     else:
         st.info("لا توجد أعمدة رقمية")
+        outlier_action = "لا تفعل شيئاً"
     
-    st.markdown("#### 5.3 تحويل الفئات (Encoding)")
+    st.markdown("---")
+    
+    # تحويل الفئات
+    st.markdown("### 3️⃣ تحويل الفئات (Encoding)")
+    categorical_cols = df.select_dtypes(include=['object', 'category']).columns.tolist()
     if categorical_cols:
-        encoding_method = st.selectbox("طريقة التحويل:", ["لا تفعل شيئاً", "Label Encoding", "One-Hot Encoding"], key="encoding_method")
+        encoding_method = st.selectbox("اختر طريقة التحويل:", ["Label Encoding", "One-Hot Encoding", "لا تفعل شيئاً"], key="encoding_method")
+    else:
+        st.info("لا توجد أعمدة فئوية")
+        encoding_method = "لا تفعل شيئاً"
+    
+    st.markdown("---")
+    
+    if st.button("🧹 تطبيق التنظيف", type="primary", key="btn_apply_clean"):
+        df_clean = df.copy()
+        steps = []
         
-        if st.button("تطبيق التحويل", key="apply_encoding"):
-            if st.session_state.df_clean is None:
-                df_clean = df.copy()
-            else:
-                df_clean = st.session_state.df_clean.copy()
-            
+        # تطبيق معالجة القيم المفقودة
+        if "حذف الصفوف" in missing_method:
+            before = len(df_clean)
+            df_clean = df_clean.dropna()
+            steps.append(f"✅ حذف {before - len(df_clean)} صف يحتوي على قيم مفقودة")
+        elif "بالمتوسط" in missing_method:
+            for col in df_clean.select_dtypes(include=[np.number]).columns:
+                df_clean[col] = df_clean[col].fillna(df_clean[col].mean())
+            steps.append("✅ تعويض القيم المفقودة بالمتوسط")
+        elif "بالوسيط" in missing_method:
+            for col in df_clean.select_dtypes(include=[np.number]).columns:
+                df_clean[col] = df_clean[col].fillna(df_clean[col].median())
+            steps.append("✅ تعويض القيم المفقودة بالوسيط")
+        elif "بالأكثر تكراراً" in missing_method:
+            for col in df_clean.columns:
+                mode_val = df_clean[col].mode()
+                if len(mode_val) > 0:
+                    df_clean[col] = df_clean[col].fillna(mode_val[0])
+            steps.append("✅ تعويض القيم المفقودة بالقيمة الأكثر تكراراً")
+        
+        # تطبيق معالجة القيم المتطرفة
+        if outlier_action != "لا تفعل شيئاً" and numeric_cols:
+            for col in numeric_cols:
+                if outlier_method == "IQR Method":
+                    Q1, Q3 = df_clean[col].quantile(0.25), df_clean[col].quantile(0.75)
+                    IQR = Q3 - Q1
+                    lower, upper = Q1 - 1.5 * IQR, Q3 + 1.5 * IQR
+                else:
+                    mean, std = df_clean[col].mean(), df_clean[col].std()
+                    lower, upper = mean - 3 * std, mean + 3 * std
+                
+                if outlier_action == "حذف القيم المتطرفة":
+                    before = len(df_clean)
+                    df_clean = df_clean[(df_clean[col] >= lower) & (df_clean[col] <= upper)]
+                    if before - len(df_clean) > 0:
+                        steps.append(f"✅ حذف {before - len(df_clean)} قيمة متطرفة من {col}")
+                elif outlier_action == "استبدال بالحدود":
+                    df_clean[col] = df_clean[col].clip(lower=lower, upper=upper)
+                    steps.append(f"✅ استبدال القيم المتطرفة بالحدود في {col}")
+        
+        # تطبيق تحويل الفئات
+        if encoding_method != "لا تفعل شيئاً" and categorical_cols:
             if encoding_method == "Label Encoding":
                 le = LabelEncoder()
-                for c in categorical_cols:
-                    df_clean[c] = le.fit_transform(df_clean[c].astype(str))
-                st.session_state.cleaning_steps.append("Label Encoding")
+                for col in categorical_cols:
+                    df_clean[col] = le.fit_transform(df_clean[col].astype(str))
+                steps.append("✅ تطبيق Label Encoding")
             elif encoding_method == "One-Hot Encoding":
                 df_clean = pd.get_dummies(df_clean, columns=categorical_cols, drop_first=True)
-                st.session_state.cleaning_steps.append("One-Hot Encoding")
-            
-            st.session_state.df_clean = df_clean
-            st.success("✅ تم التطبيق")
-            st.rerun()
-    else:
-        st.info("لا توجد أعمدة فئوية")
-
-# ====== المرحلة 6-8: التحليل الاستكشافي ======
-st.markdown("### 🔬 التحليل الاستكشافي (EDA)")
-df_for_analysis = st.session_state.df_clean if st.session_state.df_clean is not None else df
-numeric_a, categorical_a, datetime_a = detect_column_types(df_for_analysis)
-
-eda_tab1, eda_tab2, eda_tab3, eda_tab4 = st.tabs(["📋 الجداول التكرارية", "📊 التحليل الإحصائي", "📦 Box Plots", " Dashboard النهائية"])
-
-# ====== 6. الجداول التكرارية ======
-with eda_tab1:
-    st.markdown("#### 📋 الجداول التكرارية")
-    if categorical_a:
-        selected_cat = st.selectbox("اختر عمود فئوي:", categorical_a, key="freq_cat")
-        freq_df = df_for_analysis[selected_cat].value_counts().reset_index()
-        freq_df.columns = ['القيمة', 'التكرار']
-        freq_df['النسبة %'] = (freq_df['التكرار'] / len(df_for_analysis) * 100).round(2)
-        st.markdown(build_html_table(freq_df, f"توزيع {selected_cat}"), unsafe_allow_html=True)
+                steps.append("✅ تطبيق One-Hot Encoding")
         
-        fig = px.bar(freq_df.head(15), x='القيمة', y='التكرار', title=f"توزيع {selected_cat}", color='التكرار')
-        st.plotly_chart(fig, use_container_width=True)
-    else:
-        st.info("لا توجد أعمدة فئوية")
+        st.session_state.df_clean = df_clean
+        
+        st.markdown("### ✅ خطوات التنظيف المنفذة")
+        for step in steps:
+            st.success(step)
+        
+        st.markdown("---")
+        st.markdown("### 📊 حالة البيانات بعد التنظيف")
+        col1, col2, col3 = st.columns(3)
+        with col1: st.metric("الصفوف", len(df_clean))
+        with col2: st.metric("القيم المفقودة", int(df_clean.isnull().sum().sum()))
+        with col3: st.metric("الأعمدة", len(df_clean.columns))
 
-# ====== 7. التحليل الإحصائي ======
-with eda_tab2:
-    st.markdown("#### 📊 التحليل الإحصائي الشامل")
+elif st.session_state.page == "eda":
+    st.markdown("## 📊 التحليل الاستكشافي المتقدم (EDA)")
+    df = st.session_state.df_clean if st.session_state.df_clean is not None else st.session_state.df
+    if df is None:
+        st.warning("⚠️ يرجى رفع البيانات أولاً")
+        st.stop()
     
-    if numeric_a:
-        selected_num = st.selectbox("اختر عمود رقمي:", numeric_a, key="stat_num")
-        data = df_for_analysis[selected_num].dropna()
-        
-        # اختيار المقاييس
-        st.markdown("**اختر المقاييس المراد عرضها:**")
-        show_central = st.checkbox("مقاييس النزعة المركزية", value=True)
-        show_dispersion = st.checkbox("مقاييس التشتت", value=True)
-        show_position = st.checkbox("مقاييس الموضع", value=True)
-        show_shape = st.checkbox("الانحناء والتفلطح", value=True)
-        
-        if show_central:
-            st.markdown("##### 📍 مقاييس النزعة المركزية")
-            central_data = pd.DataFrame({
-                'المقياس': ['المتوسط (Mean)', 'الوسيط (Median)', 'المنوال (Mode)'],
-                'القيمة': [f"{data.mean():.4f}", f"{data.median():.4f}", f"{data.mode().iloc[0]:.4f}"],
-                'التفسير': [
-                    'معدل القيم - يتأثر بالقيم المتطرفة',
-                    'القيمة الوسطى - لا يتأثر بالمتطرفة',
-                    'القيمة الأكثر تكراراً'
-                ]
-            })
-            st.markdown(build_html_table(central_data), unsafe_allow_html=True)
-        
-        if show_dispersion:
-            st.markdown("##### 📏 مقاييس التشتت")
-            dispersion_data = pd.DataFrame({
-                'المقياس': ['المدى (Range)', 'التباين (Variance)', 'الانحراف المعياري (Std)', 'معامل الاختلاف (CV%)'],
-                'القيمة': [
-                    f"{(data.max() - data.min()):.4f}",
-                    f"{data.var():.4f}",
-                    f"{data.std():.4f}",
-                    f"{(data.std()/data.mean()*100):.2f}%"
-                ],
-                'التفسير': [
-                    f"الفرق بين أعلى وأدنى قيمة",
-                    'معدل تشتت القيم عن المتوسط',
-                    'مقياس التشتت الأكثر استخداماً',
-                    'التشتت النسبي مقارنة بالمتوسط'
-                ]
-            })
-            st.markdown(build_html_table(dispersion_data), unsafe_allow_html=True)
-        
-        if show_position:
-            st.markdown("##### 📐 مقاييس الموضع")
-            position_data = pd.DataFrame({
-                'المقياس': ['الحد الأدنى', 'الربيع الأول (Q1)', 'الوسيط (Q2)', 'الربيع الثالث (Q3)', 'الحد الأقصى', 'المدى الربيعي (IQR)', 'النسبة 10%', 'النسبة 90%'],
-                'القيمة': [
-                    f"{data.min():.4f}", f"{data.quantile(0.25):.4f}", f"{data.quantile(0.5):.4f}",
-                    f"{data.quantile(0.75):.4f}", f"{data.max():.4f}", f"{(data.quantile(0.75)-data.quantile(0.25)):.4f}",
-                    f"{data.quantile(0.10):.4f}", f"{data.quantile(0.90):.4f}"
-                ],
-                'التفسير': [
-                    'أصغر قيمة في البيانات',
-                    '25% من البيانات أقل من هذه القيمة',
-                    '50% من البيانات أقل من هذه القيمة',
-                    '75% من البيانات أقل من هذه القيمة',
-                    'أكبر قيمة في البيانات',
-                    'مقياس التشتت resistant للمتطرفة',
-                    '10% من البيانات أقل من هذه القيمة',
-                    '90% من البيانات أقل من هذه القيمة'
-                ]
-            })
-            st.markdown(build_html_table(position_data), unsafe_allow_html=True)
-        
-        if show_shape:
-            st.markdown("##### 📈 الانحناء والتفلطح")
+    numeric_cols = df.select_dtypes(include=[np.number]).columns.tolist()
+    categorical_cols = df.select_dtypes(include=['object', 'category']).columns.tolist()
+    
+    tab1, tab2, tab3 = st.tabs(["📋 الجداول التكرارية", "📊 التحليل الإحصائي الشامل", "📦 Box Plots"])
+    
+    with tab1:
+        st.markdown("###  الجداول التكرارية")
+        if categorical_cols:
+            for col in categorical_cols[:10]:
+                st.markdown(f"####  {col}")
+                freq = df[col].value_counts().head(15).reset_index()
+                freq.columns = ['القيمة', 'التكرار']
+                freq['النسبة %'] = (freq['التكرار'] / len(df) * 100).round(2)
+                st.dataframe(freq, use_container_width=True)
+                fig = px.bar(freq, x='القيمة', y='التكرار', title=f"توزيع {col}")
+                st.plotly_chart(fig, use_container_width=True)
+        else:
+            st.info("لا توجد أعمدة فئوية")
+    
+    with tab2:
+        st.markdown("### 📊 التحليل الإحصائي الشامل")
+        if numeric_cols:
+            selected_col = st.selectbox("اختر العمود الرقمي:", numeric_cols)
+            data = df[selected_col].dropna()
+            
+            # مقاييس النزعة المركزية
+            st.markdown("#### 📍 مقاييس النزعة المركزية")
+            col1, col2, col3 = st.columns(3)
+            with col1: st.metric("المتوسط (Mean)", f"{data.mean():.4f}")
+            with col2: st.metric("الوسيط (Median)", f"{data.median():.4f}")
+            with col3: st.metric("المنوال (Mode)", f"{data.mode().iloc[0]:.4f}")
+            
+            st.markdown("---")
+            
+            # مقاييس التشتت
+            st.markdown("#### 📏 مقاييس التشتت")
+            col1, col2, col3, col4 = st.columns(4)
+            with col1: st.metric("المدى (Range)", f"{(data.max() - data.min()):.4f}")
+            with col2: st.metric("التباين (Variance)", f"{data.var():.4f}")
+            with col3: st.metric("الانحراف المعياري (Std)", f"{data.std():.4f}")
+            with col4: st.metric("معامل الاختلاف (CV%)", f"{(data.std()/data.mean()*100):.2f}%")
+            
+            st.markdown("---")
+            
+            # مقاييس الموضع
+            st.markdown("#### 📐 مقاييس الموضع")
+            col1, col2, col3, col4 = st.columns(4)
+            with col1: st.metric("الربيع الأول (Q1)", f"{data.quantile(0.25):.4f}")
+            with col2: st.metric("الوسيط (Q2)", f"{data.quantile(0.50):.4f}")
+            with col3: st.metric("الربيع الثالث (Q3)", f"{data.quantile(0.75):.4f}")
+            with col4: st.metric("المدى الربيعي (IQR)", f"{(data.quantile(0.75) - data.quantile(0.25)):.4f}")
+            
+            st.markdown("---")
+            
+            # الانحناء والتفلطح
+            st.markdown("#### 📈 الانحناء والتفلطح")
             skew = data.skew()
             kurt = data.kurtosis()
-            shape_data = pd.DataFrame({
-                'المقياس': ['الانحناء (Skewness)', 'التفلطح (Kurtosis)'],
-                'القيمة': [f"{skew:.4f}", f"{kurt:.4f}"],
-                'التفسير الرقمي': [
-                    interpret_skewness(skew),
-                    interpret_kurtosis(kurt)
-                ]
-            })
-            st.markdown(build_html_table(shape_data), unsafe_allow_html=True)
+            
+            skew_interp = "متماثل تقريباً" if abs(skew) < 0.5 else ("منحرف لليمين" if skew > 0 else "منحرف لليسار")
+            kurt_interp = "مدبب (ذيول ثقيلة)" if kurt > 3 else ("متوسط التفلطح" if kurt > 0 else "مفلطح (ذيول خفيفة)")
+            
+            col1, col2 = st.columns(2)
+            with col1: st.info(f"**الانحناء (Skewness):** {skew:.4f}\n\n*التفسير:* {skew_interp}")
+            with col2: st.info(f"**التفلطح (Kurtosis):** {kurt:.4f}\n\n*التفسير:* {kurt_interp}")
+            
+            st.markdown("---")
             
             # رسم بياني
-            fig = px.histogram(df_for_analysis, x=selected_num, nbins=30, title=f"توزيع {selected_num}", marginal="box")
+            fig = px.histogram(df, x=selected_col, nbins=30, title=f"توزيع {selected_col}")
             fig.add_vline(x=data.mean(), line_dash="dash", line_color="red", annotation_text=f"Mean: {data.mean():.2f}")
-            fig.add_vline(x=data.median(), line_dash="dot", line_color="green", annotation_text=f"Median: {data.median():.2f}")
             st.plotly_chart(fig, use_container_width=True)
-    else:
-        st.info("لا توجد أعمدة رقمية")
-
-# ====== Box Plots ======
-with eda_tab3:
-    st.markdown("#### 📦 مخططات الصندوق (Box Plots)")
-    if numeric_a:
-        selected_box = st.selectbox("اختر عمود:", numeric_a, key="box_col")
-        data = df_for_analysis[selected_box].dropna()
-        
-        Q1, Q2, Q3 = data.quantile(0.25), data.quantile(0.5), data.quantile(0.75)
-        IQR = Q3 - Q1
-        lower = Q1 - 1.5*IQR
-        upper = Q3 + 1.5*IQR
-        outliers = data[(data < lower) | (data > upper)]
-        
-        box_data = pd.DataFrame({
-            'المقياس': ['الحد الأدنى', 'Q1', 'الوسيط', 'Q3', 'الحد الأقصى', 'IQR', 'عدد المتطرفة'],
-            'القيمة': [f"{data.min():.4f}", f"{Q1:.4f}", f"{Q2:.4f}", f"{Q3:.4f}", f"{data.max():.4f}", f"{IQR:.4f}", str(len(outliers))]
-        })
-        st.markdown(build_html_table(box_data, f"Box Plot لـ {selected_box}"), unsafe_allow_html=True)
-        
-        fig = px.box(df_for_analysis, y=selected_box, title=f"Box Plot - {selected_box}", points="all")
-        st.plotly_chart(fig, use_container_width=True)
-    else:
-        st.info("لا توجد أعمدة رقمية")
-
-# ====== 8. Dashboard النهائية ======
-with eda_tab4:
-    st.markdown("#### 📊 Dashboard النهائية للتقرير")
+        else:
+            st.info("لا توجد أعمدة رقمية")
     
-    if st.button("إنشاء وتصدير التقرير", key="export_report"):
+    with tab3:
+        st.markdown("### 📦 Box Plots")
+        if numeric_cols:
+            for col in numeric_cols[:5]:
+                st.markdown(f"#### 📦 {col}")
+                fig = px.box(df, y=col, title=f"Box Plot - {col}")
+                st.plotly_chart(fig, use_container_width=True)
+                
+                Q1, Q2, Q3 = df[col].quantile(0.25), df[col].quantile(0.50), df[col].quantile(0.75)
+                IQR = Q3 - Q1
+                lower, upper = Q1 - 1.5 * IQR, Q3 + 1.5 * IQR
+                outliers = len(df[(df[col] < lower) | (df[col] > upper)])
+                
+                st.metric("عدد القيم المتطرفة", outliers)
+        else:
+            st.info("لا توجد أعمدة رقمية")
+
+elif st.session_state.page == "final_dashboard":
+    st.markdown("## 📊 الداشبورد النهائية للتقرير")
+    df = st.session_state.df_clean if st.session_state.df_clean is not None else st.session_state.df
+    if df is None:
+        st.warning("️ يرجى رفع البيانات أولاً")
+        st.stop()
+    
+    numeric_cols = df.select_dtypes(include=[np.number]).columns.tolist()
+    categorical_cols = df.select_dtypes(include=['object', 'category']).columns.tolist()
+    
+    if st.button("📥 تصدير التقرير الشامل", type="primary", key="btn_export_report"):
         html_parts = []
-        html_parts.append(f"""<!DOCTYPE html><html dir="rtl" lang="ar"><head><meta charset="UTF-8">
-        <title>تقرير التحليل الشامل</title>
+        html_parts.append(f"""
+        <!DOCTYPE html>
+        <html dir="rtl" lang="ar">
+        <head>
+        <meta charset="UTF-8">
+        <title>تقرير التحليل الشامل - Smart Analytics Pro</title>
         <style>
-            body {{ font-family: 'Segoe UI', Tahoma; background: #f8f9fa; padding: 20px; direction: rtl; }}
-            .header {{ background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; padding: 30px; border-radius: 12px; margin-bottom: 20px; }}
-            .section {{ background: white; padding: 20px; border-radius: 12px; margin-bottom: 20px; box-shadow: 0 4px 15px rgba(0,0,0,0.1); }}
-            table {{ width: 100%; border-collapse: collapse; margin: 10px 0; }}
-            th {{ background: #667eea; color: white; padding: 10px; text-align: right; }}
-            td {{ padding: 8px; border-bottom: 1px solid #e2e8f0; text-align: right; }}
-            tr:nth-child(even) {{ background: #f7fafc; }}
-            .metric {{ display: inline-block; background: white; padding: 15px; border-radius: 8px; margin: 5px; box-shadow: 0 2px 8px rgba(0,0,0,0.1); }}
-        </style></head><body>
-        <div class="header"><h1>📊 تقرير التحليل الاستكشافي الشامل</h1><p>Smart Analytics Pro - {datetime.now().strftime('%Y-%m-%d %H:%M')}</p></div>
+        body {{ font-family: 'Segoe UI', Tahoma, Arial, sans-serif; background: #f8f9fa; color: #2d3748; margin: 0; padding: 0; direction: rtl; text-align: right; }}
+        .header {{ background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; padding: 50px 20px; text-align: center; }}
+        .container {{ max-width: 1100px; margin: 40px auto; padding: 0 20px; }}
+        .section {{ background: white; padding: 35px; border-radius: 16px; box-shadow: 0 4px 15px rgba(0,0,0,0.05); margin-bottom: 30px; }}
+        .section h2 {{ color: #764ba2; border-bottom: 3px solid #e2e8f0; padding-bottom: 15px; }}
+        table {{ width: 100%; border-collapse: collapse; margin: 20px 0; }}
+        th {{ background: #667eea; color: white; padding: 14px 12px; text-align: right; }}
+        td {{ padding: 12px; border-bottom: 1px solid #edf2f7; text-align: right; }}
+        tr:nth-child(even) {{ background: #f7fafc; }}
+        .footer {{ text-align: center; padding: 40px; color: #718096; background: white; margin-top: 40px; }}
+        </style>
+        </head>
+        <body>
+        <div class="header">
+        <h1>📊 تقرير التحليل الشامل</h1>
+        <p>Smart Analytics Pro - {datetime.now().strftime('%Y-%m-%d %H:%M')}</p>
+        </div>
+        <div class="container">
         """)
         
-        # ملخص البيانات
-        html_parts.append(f"""<div class="section"><h2> ملخص البيانات</h2>
-        <div class="metric">الصفوف: {len(df_for_analysis)}</div>
-        <div class="metric">الأعمدة: {len(df_for_analysis.columns)}</div>
-        <div class="metric">الرقمية: {len(numeric_a)}</div>
-        <div class="metric">الفئوية: {len(categorical_a)}</div></div>""")
+        # معلومات البيانات
+        html_parts.append(f"""
+        <div class="section">
+        <h2>📋 معلومات البيانات</h2>
+        <p><strong>عدد الصفوف:</strong> {len(df)}</p>
+        <p><strong>عدد الأعمدة:</strong> {len(df.columns)}</p>
+        <p><strong>القيم المفقودة:</strong> {int(df.isnull().sum().sum())}</p>
+        </div>
+        """)
         
         # الجداول التكرارية
         html_parts.append("<div class='section'><h2>📋 الجداول التكرارية</h2>")
-        for col in categorical_a[:5]:
-            freq = df_for_analysis[col].value_counts().head(10).reset_index()
+        for col in categorical_cols[:5]:
+            freq = df[col].value_counts().head(10).reset_index()
             freq.columns = ['القيمة', 'التكرار']
-            freq['النسبة %'] = (freq['التكرar'] / len(df_for_analysis) * 100).round(2)
+            freq['النسبة %'] = (freq['التكرار'] / len(df) * 100).round(2)
             html_parts.append(f"<h3>{col}</h3>{freq.to_html(index=False)}")
         html_parts.append("</div>")
         
         # التحليل الإحصائي
-        html_parts.append("<div class='section'><h2>📊 التحليل الإحصائي</h2>")
-        for col in numeric_a:
-            data = df_for_analysis[col].dropna()
-            html_parts.append(f"<h3>{col}</h3>")
-            stats = pd.DataFrame({
-                'المقياس': ['المتوسط', 'الوسيط', 'الانحراف المعياري', 'التباين', 'Q1', 'Q3', 'IQR', 'Skewness', 'Kurtosis'],
-                'القيمة': [f"{data.mean():.2f}", f"{data.median():.2f}", f"{data.std():.2f}", f"{data.var():.2f}",
-                          f"{data.quantile(0.25):.2f}", f"{data.quantile(0.75):.2f}", f"{(data.quantile(0.75)-data.quantile(0.25)):.2f}",
-                          f"{data.skew():.4f}", f"{data.kurtosis():.4f}"],
-                'التفسير': ['-', '-', '-', '-', '-', '-', '-', interpret_skewness(data.skew()), interpret_kurtosis(data.kurtosis())]
-            })
-            html_parts.append(stats.to_html(index=False))
+        html_parts.append("<div class='section'><h2> التحليل الإحصائي الشامل</h2>")
+        for col in numeric_cols[:5]:
+            data = df[col].dropna()
+            html_parts.append(f"""
+            <h3>{col}</h3>
+            <table>
+            <tr><th>المقياس</th><th>القيمة</th><th>التفسير</th></tr>
+            <tr><td>المتوسط</td><td>{data.mean():.4f}</td><td>معدل القيم</td></tr>
+            <tr><td>الوسيط</td><td>{data.median():.4f}</td><td>القيمة الوسطى</td></tr>
+            <tr><td>الانحراف المعياري</td><td>{data.std():.4f}</td><td>مقياس التشتت</td></tr>
+            <tr><td>Q1</td><td>{data.quantile(0.25):.4f}</td><td>25% من البيانات أقل من هذه القيمة</td></tr>
+            <tr><td>Q3</td><td>{data.quantile(0.75):.4f}</td><td>75% من البيانات أقل من هذه القيمة</td></tr>
+            <tr><td>الانحناء</td><td>{data.skew():.4f}</td><td>{"متماثل" if abs(data.skew()) < 0.5 else "منحرف"}</td></tr>
+            <tr><td>التفلطح</td><td>{data.kurtosis():.4f}</td><td>{"مدبب" if data.kurtosis() > 3 else "مفلطح"}</td></tr>
+            </table>
+            """)
         html_parts.append("</div>")
         
-        html_parts.append("""</body></html>""")
+        html_parts.append("""
+        <div class="footer">
+        <p>تم إنشاء هذا التقرير بواسطة Smart Analytics Pro</p>
+        <p>© 2026 جميع الحقوق محفوظة</p>
+        </div>
+        </div>
+        </body>
+        </html>
+        """)
         
         final_html = "".join(html_parts)
-        
-        st.download_button("📥 تحميل التقرير", data=final_html, 
-                          file_name=f"EDA_Report_{datetime.now().strftime('%Y%m%d_%H%M%S')}.html",
-                          mime="text/html")
+        st.download_button("📥 تحميل التقرير", data=final_html, file_name=f"Report_{datetime.now().strftime('%Y%m%d_%H%M%S')}.html", mime="text/html")
         st.success("✅ تم إنشاء التقرير!")
 
 st.markdown("---")
-st.markdown("<div style='text-align:center; color:#718096; padding:20px;'>Smart Analytics Pro © 2026</div>", unsafe_allow_html=True)
+st.markdown("<div style='text-align: center; color: #718096; padding: 20px;'>Smart Analytics Pro © 2026</div>", unsafe_allow_html=True)
